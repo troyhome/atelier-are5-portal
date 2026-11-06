@@ -1,45 +1,39 @@
 /* ==========================================================================
-   ATELIER ARE 5.0 & AXP LICENSURE MONOGRAPH — ART DIRECTOR EDITION
+   ATELIER ARE 5.0 & AXP LICENSURE MONOGRAPH — ART DIRECTOR EDITION (PASS 2)
    Swiss Architectural Editorial Grid · Warm Vellum & Obsidian Studio Themes
-   Zero Generic Templates · Tactile Drafting Surfaces · Precision Hairlines
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Warm Architectural Vellum Palette (HSL Curated) */
   --bg-canvas: hsl(38, 33%, 95%);
   --bg-surface: hsl(39, 38%, 98%);
   --bg-elevated: hsl(36, 25%, 92%);
-  --bg-inset: hsl(35, 22%, 89%);
+  --bg-inset: hsl(35, 22%, 88%);
   --bg-psi-chrome: hsl(212, 32%, 12%);
   --bg-psi-subbar: hsl(212, 26%, 17%);
 
-  /* Typography Ink Hierarchy */
-  --ink-primary: hsl(215, 28%, 12%);
-  --ink-secondary: hsl(215, 16%, 32%);
-  --ink-muted: hsl(215, 12%, 48%);
+  --ink-primary: hsl(215, 28%, 11%);
+  --ink-secondary: hsl(215, 16%, 30%);
+  --ink-muted: hsl(215, 12%, 46%);
   --ink-on-dark: hsl(38, 30%, 95%);
 
-  /* Architectural Pigment Accents (Zero Purple/Neon) */
-  --accent-terracotta: hsl(16, 66%, 45%);
-  --accent-terracotta-soft: hsla(16, 66%, 45%, 0.11);
-  --accent-cobalt: hsl(208, 72%, 36%);
-  --accent-cobalt-soft: hsla(208, 72%, 36%, 0.11);
-  --accent-brass: hsl(37, 74%, 40%);
-  --accent-brass-soft: hsla(37, 74%, 40%, 0.13);
-  --accent-verdigris: hsl(156, 54%, 30%);
-  --accent-verdigris-soft: hsla(156, 54%, 30%, 0.12);
+  --accent-terracotta: hsl(16, 66%, 44%);
+  --accent-terracotta-soft: hsla(16, 66%, 44%, 0.11);
+  --accent-cobalt: hsl(208, 72%, 35%);
+  --accent-cobalt-soft: hsla(208, 72%, 35%, 0.11);
+  --accent-brass: hsl(37, 74%, 38%);
+  --accent-brass-soft: hsla(37, 74%, 38%, 0.13);
+  --accent-verdigris: hsl(156, 54%, 29%);
+  --accent-verdigris-soft: hsla(156, 54%, 29%, 0.12);
   --accent-crimson: hsl(356, 64%, 44%);
   --accent-crimson-soft: hsla(356, 64%, 44%, 0.12);
 
-  /* Structural Hairlines & Elevation */
   --hairline: hsl(34, 18%, 81%);
-  --hairline-strong: hsl(32, 16%, 68%);
+  --hairline-strong: hsl(32, 16%, 67%);
   --shadow-sheet: 0 1px 2px rgba(20, 26, 36, 0.04), 0 8px 24px -4px rgba(20, 26, 36, 0.06);
   --shadow-modal: 0 24px 64px -12px rgba(12, 17, 26, 0.35);
 
-  /* Typography Families */
   --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -89,7 +83,6 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Subtle Vellum Paper Grain Overlay */
 body::before {
   content: "";
   position: fixed;
@@ -100,7 +93,6 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Architectural Container Frame */
 .monograph-shell {
   max-width: 1440px;
   margin: 0 auto;
@@ -114,13 +106,13 @@ body::before {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.55rem 1rem;
-  background: var(--bg-surface);
+  padding: 0.5rem 1.15rem;
+  background: var(--bg-elevated);
   border: 1px solid var(--hairline-strong);
   border-bottom: none;
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: var(--ink-secondary);
 }
 
@@ -135,37 +127,41 @@ body::before {
   color: var(--ink-primary);
 }
 
-/* Primary Navigation Header */
+/* Two-Tier Architectural Masthead */
 .atelier-masthead {
   background: var(--bg-surface);
   border: 1px solid var(--hairline-strong);
   box-shadow: var(--shadow-sheet);
-  padding: 1.1rem 1.35rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
   position: sticky;
   top: 0;
   z-index: 50;
 }
 
+.masthead-top-row {
+  padding: 0.95rem 1.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.95rem;
 }
 
 .brand-monogram {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   background: var(--ink-primary);
   color: var(--bg-surface);
   display: grid;
   place-items: center;
   font-family: var(--font-display);
-  font-size: 1.55rem;
+  font-size: 1.5rem;
   font-style: italic;
   border: 1px solid var(--hairline-strong);
   flex-shrink: 0;
@@ -174,7 +170,7 @@ body::before {
 .brand-titles h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.65rem;
+  font-size: 1.6rem;
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -184,33 +180,54 @@ body::before {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--ink-muted);
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
 }
 
-/* Primary Navigation Tabs */
-.studio-nav {
+.masthead-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Full-Width 6-Tab Index Bar */
+.studio-nav {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
   background: var(--bg-elevated);
-  padding: 0.3rem;
-  border: 1px solid var(--hairline);
+}
+
+@media (max-width: 1024px) {
+  .studio-nav {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .studio-nav {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .studio-tab {
   appearance: none;
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
+  border-right: 1px solid var(--hairline);
+  border-bottom: 2px solid transparent;
   color: var(--ink-secondary);
   font-family: var(--font-sans);
   font-size: 0.82rem;
   font-weight: 600;
-  padding: 0.5rem 0.9rem;
+  padding: 0.7rem 0.85rem;
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
-  transition: all 0.16s ease;
+  transition: all 0.15s ease;
+}
+
+.studio-tab:last-child {
+  border-right: none;
 }
 
 .studio-tab:hover {
@@ -221,8 +238,7 @@ body::before {
 .studio-tab.active {
   background: var(--bg-surface);
   color: var(--ink-primary);
-  border-color: var(--hairline-strong);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-bottom-color: var(--accent-terracotta);
 }
 
 .studio-tab .tab-index {
@@ -230,12 +246,6 @@ body::before {
   font-size: 0.75rem;
   color: var(--accent-terracotta);
   font-weight: 700;
-}
-
-.masthead-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
 }
 
 /* Architectural Buttons */
@@ -266,10 +276,6 @@ body::before {
   background: var(--accent-terracotta);
   color: #fff;
   border-color: var(--accent-terracotta);
-}
-
-.btn-arch.primary:hover {
-  filter: brightness(1.08);
 }
 
 .btn-arch.cobalt {
@@ -306,7 +312,7 @@ body::before {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.5rem;
+  gap: 1.4rem;
 }
 
 .hero-kicker {
@@ -320,16 +326,16 @@ body::before {
 
 .hero-headline {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 3.1vw, 2.85rem);
+  font-size: clamp(2rem, 3.1vw, 2.8rem);
   font-weight: 400;
   line-height: 1.08;
-  margin: 0.4rem 0 0.75rem;
+  margin: 0.35rem 0 0.7rem;
   letter-spacing: -0.015em;
 }
 
 .hero-lead {
   color: var(--ink-secondary);
-  font-size: 0.96rem;
+  font-size: 0.94rem;
   max-width: 64ch;
   margin: 0;
   line-height: 1.6;
@@ -340,7 +346,7 @@ body::before {
   grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid var(--hairline);
   border-bottom: 1px solid var(--hairline);
-  padding: 1rem 0;
+  padding: 0.95rem 0;
   gap: 1rem;
 }
 
@@ -370,20 +376,20 @@ body::before {
   font-family: var(--font-display);
   font-size: 1.9rem;
   line-height: 1.1;
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
 }
 
 .kpi-sub {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
 }
 
 .hero-visual-frame {
   position: relative;
   border-left: 1px solid var(--hairline-strong);
   background: var(--bg-inset);
-  min-height: 310px;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -396,16 +402,15 @@ body::before {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: contrast(1.03);
 }
 
 .hero-caption-plate {
   position: relative;
   z-index: 2;
-  background: rgba(16, 22, 31, 0.86);
+  background: rgba(16, 22, 31, 0.88);
   backdrop-filter: blur(8px);
   color: #f8fafc;
-  padding: 0.85rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.16);
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -441,10 +446,12 @@ body::before {
   border: 1px solid var(--hairline-strong);
   box-shadow: var(--shadow-sheet);
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .sheet-header {
-  padding: 0.9rem 1.35rem;
+  padding: 0.85rem 1.35rem;
   border-bottom: 1px solid var(--hairline);
   display: flex;
   flex-wrap: wrap;
@@ -456,7 +463,7 @@ body::before {
 
 .sheet-title-group {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.75rem;
 }
 
@@ -478,6 +485,7 @@ body::before {
 
 .sheet-body {
   padding: 1.35rem;
+  flex: 1;
 }
 
 /* Division Architectural Cards Grid */
@@ -528,9 +536,9 @@ body::before {
 
 .div-code-tag {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 0.2rem 0.6rem;
+  padding: 0.18rem 0.55rem;
   background: var(--ink-primary);
   color: var(--bg-surface);
 }
@@ -539,7 +547,7 @@ body::before {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.2rem 0.55rem;
+  padding: 0.18rem 0.55rem;
   border: 1px solid currentColor;
 }
 
@@ -705,7 +713,7 @@ body::before {
 }
 
 .question-stem {
-  font-size: 1.04rem;
+  font-size: 1.02rem;
   font-weight: 500;
   line-height: 1.65;
   color: var(--ink-primary);
@@ -727,13 +735,13 @@ body::before {
   background: var(--bg-surface);
   color: var(--ink-primary);
   border: 1px solid var(--hairline-strong);
-  padding: 0.85rem 1rem;
+  padding: 0.8rem 1rem;
   display: flex;
   align-items: flex-start;
   gap: 0.85rem;
   cursor: pointer;
   font-family: var(--font-sans);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   line-height: 1.45;
   transition: all 0.14s ease;
 }
@@ -878,8 +886,8 @@ body::before {
 .flashcard-stage {
   background: var(--bg-elevated);
   border: 1px solid var(--hairline-strong);
-  padding: 2rem;
-  min-height: 230px;
+  padding: 1.75rem;
+  min-height: 215px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ATELIER ARE 5.0 & AXP LICENSURE PORTAL — INTERACTIVE ENGINE
+   ATELIER ARE 5.0 & AXP LICENSURE PORTAL — INTERACTIVE ENGINE (PASS 2)
    ========================================================================== */
 
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1bLGH_YofHmm9wYqN4Vzu7RJ3PuEuocV_lL7DidNsJwQ/edit";
@@ -11,8 +11,6 @@ const state = {
   theme: localStorage.getItem("atelier_theme") || "light",
   tab: "overview",
   radarFocus: "PjM",
-  expandedDiv: null,
-  // Simulator
   simDivision: "ALL",
   simLegacy: "ALL",
   simType: "ALL",
@@ -25,24 +23,18 @@ const state = {
   simCaseTab: 0,
   simSeconds: 160 * 60,
   simReport: null,
-  // AXP
   axpSuggestion: null,
-  // Visual Atlas Interactive Controls
   finRevenue: 4200000,
   finDirectLabor: 1400000,
   finOverhead: 2100000,
-  climateMode: "cold", // 'cold' (CZ6 Chicago) or 'humid' (CZ2 Houston)
+  climateMode: "cold",
   zoningLotW: 100,
   zoningLotD: 150,
   zoningFar: 2.0,
   zoningSetbackF: 10,
   zoningSetbackS: 5,
-  // Coach & Flashcards
-  coachTopic: "multiplier",
-   coachCustomReply: null,
   fcIdx: 0,
   fcFlipped: false,
-  // Resources & News
   resFilter: "ALL",
   midwestState: "IL"
 };
@@ -58,8 +50,8 @@ function esc(s) {
 function initData(loadedDb) {
   db = loadedDb;
   try {
-    const savedLogs = localStorage.getItem("atelier_axp_logs_v2");
-    const savedAreas = localStorage.getItem("atelier_axp_areas_v2");
+    const savedLogs = localStorage.getItem("atelier_axp_logs_v3");
+    const savedAreas = localStorage.getItem("atelier_axp_areas_v3");
     if (savedLogs) db.axpData.workLogs = JSON.parse(savedLogs);
     if (savedAreas) db.axpData.areas = JSON.parse(savedAreas);
   } catch (e) {}
@@ -77,8 +69,8 @@ function toggleTheme() {
 
 function saveAxpState() {
   try {
-    localStorage.setItem("atelier_axp_logs_v2", JSON.stringify(db.axpData.workLogs));
-    localStorage.setItem("atelier_axp_areas_v2", JSON.stringify(db.axpData.areas));
+    localStorage.setItem("atelier_axp_logs_v3", JSON.stringify(db.axpData.workLogs));
+    localStorage.setItem("atelier_axp_areas_v3", JSON.stringify(db.axpData.areas));
   } catch (e) {}
 }
 
@@ -98,11 +90,11 @@ setInterval(() => {
 }, 1000);
 
 /* ==========================================================================
-   SVG RADAR / SPIDER COMPETENCY CHART (6 ARE 5.0 DIVISIONS)
+   SVG RADAR / SPIDER COMPETENCY CHART (NO LABEL OVERLAP + SCALED DISTRIBUTION)
    ========================================================================== */
 function buildCompetencyRadarSvg() {
   const divs = db.divisions;
-  const cx = 190, cy = 165, maxR = 112;
+  const cx = 200, cy = 152, maxR = 104;
   const angles = divs.map((_, i) => (-Math.PI / 2) + (i * 2 * Math.PI / divs.length));
 
   const pt = (angle, score) => {
@@ -111,7 +103,6 @@ function buildCompetencyRadarSvg() {
     return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
   };
 
-  // Concentric hexagon rings (400, 550 Cut Score, 700, 800)
   const ringScores = [350, 550, 675, 800];
   const ringsSvg = ringScores.map(sc => {
     const pts = angles.map(a => pt(a, sc).map(n => n.toFixed(1)).join(",")).join(" ");
@@ -119,7 +110,6 @@ function buildCompetencyRadarSvg() {
     return `<polygon points="${pts}" fill="none" stroke="${isCut ? 'var(--accent-terracotta)' : 'var(--hairline-strong)'}" stroke-width="${isCut ? '1.6' : '0.8'}" ${isCut ? 'stroke-dasharray="4,3"' : ''} />`;
   }).join("");
 
-  // Axis spokes & labels
   const axesSvg = divs.map((d, i) => {
     const [xEnd, yEnd] = pt(angles[i], 800);
     const lx = cx + (maxR + 28) * Math.cos(angles[i]);
@@ -133,7 +123,6 @@ function buildCompetencyRadarSvg() {
     `;
   }).join("");
 
-  // Candidate Readiness Polygon
   const userPts = divs.map((d, i) => pt(angles[i], d.readinessScaledScore).map(n => n.toFixed(1)).join(",")).join(" ");
   const dotsSvg = divs.map((d, i) => {
     const [px, py] = pt(angles[i], d.readinessScaledScore);
@@ -142,16 +131,17 @@ function buildCompetencyRadarSvg() {
   }).join("");
 
   return `
-    <svg viewBox="0 0 380 330" style="width:100%;height:auto;display:block;">
+    <svg viewBox="0 0 400 340" style="width:100%;height:auto;display:block;">
       ${ringsSvg}
       ${axesSvg}
       <polygon points="${userPts}" fill="var(--accent-cobalt-soft)" stroke="var(--accent-cobalt)" stroke-width="2.2" />
       ${dotsSvg}
-      <g transform="translate(14, 308)" font-family="var(--font-mono)" font-size="10" fill="var(--ink-secondary)">
-        <line x1="0" y1="-4" x2="18" y2="-4" stroke="var(--accent-terracotta)" stroke-width="1.8" stroke-dasharray="4,2" />
-        <text x="24" y="0">NCARB 550 Cut Score Ring</text>
-        <rect x="195" y="-9" width="10" height="10" fill="var(--accent-cobalt-soft)" stroke="var(--accent-cobalt)" stroke-width="1.5" />
-        <text x="210" y="0">Your Scaled Readiness</text>
+      <line x1="16" y1="306" x2="384" y2="306" stroke="var(--hairline)" stroke-width="0.8" />
+      <g transform="translate(24, 326)" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-secondary)">
+        <line x1="0" y1="-4" x2="20" y2="-4" stroke="var(--accent-terracotta)" stroke-width="1.8" stroke-dasharray="4,2" />
+        <text x="26" y="0">NCARB 550 Cut Score Ring</text>
+        <rect x="205" y="-9" width="10" height="10" fill="var(--accent-cobalt-soft)" stroke="var(--accent-cobalt)" stroke-width="1.5" />
+        <text x="220" y="0">Your Scaled Readiness</text>
       </g>
     </svg>
   `;
@@ -193,37 +183,37 @@ function classifyWorkTask(description) {
     {
       code: "CE", name: "Construction & Evaluation",
       keywords: ["rfi", "submittal", "shop drawing", "site visit", "punch list", "pay app", "g702", "g703", "change order", "g701", "ccd", "g714", "asi", "g710", "field report", "closeout", "substantial completion", "cylinder"],
-      competency: "Review shop drawings, submittals, RFIs, and payment applications during construction administration",
+      competency: "CE-3: Review shop drawings, submittals, RFIs, and payment applications during construction administration",
       synergy: "Directly reinforces ARE 5.0 CE Section 2 (Construction Observation) & Section 3 (Administrative Procedures)."
     },
     {
       code: "PDD", name: "Project Development & Documentation",
-      keywords: ["wall section", "detail", "flashing", "spec", "masterformat", "csi", "cd", "construction document", "door schedule", "window schedule", " coordination", "clash", "vapor", "acoustical", "structural detail"],
-      competency: "Prepare construction documents, technical specifications (CSI 3-Part), and wall assembly details",
+      keywords: ["wall section", "detail", "flashing", "spec", "masterformat", "csi", "cd", "construction document", "door schedule", "window schedule", "coordination", "clash", "vapor", "acoustical", "structural detail"],
+      competency: "PDD-1: Prepare construction documents, technical specifications (CSI 3-Part), and wall assembly details",
       synergy: "Directly reinforces ARE 5.0 PDD Section 1 (Integration of Building Materials) & Section 2 (Construction Documentation)."
     },
     {
       code: "PPD", name: "Project Planning & Design",
       keywords: ["schematic", "massing", "hvac", "mechanical", "daylight", "solar", "structural system", "egress", "life safety", "occupancy", "fire rating", "ibc", "energy model", "acoustic"],
-      competency: "Perform schematic design alternatives, IBC life-safety egress sizing, and MEP/structural system selection",
+      competency: "PPD-3: Perform schematic design alternatives, IBC life-safety egress sizing, and MEP/structural system selection",
       synergy: "Directly reinforces ARE 5.0 PPD Section 3 (Building Systems) & Section 4 (Project Planning)."
     },
     {
       code: "PA", name: "Programming & Analysis",
       keywords: ["zoning", "setback", "far", "site analysis", "program", "adjacency", "bubble", "topography", "contour", "geotech", "soil", "wetland", "feasibility", "existing building"],
-      competency: "Analyze site zoning constraints, FAR, topographic drainage contours, and client space programming",
+      competency: "PA-2: Analyze site zoning constraints, FAR, topographic drainage contours, and client space programming",
       synergy: "Directly reinforces ARE 5.0 PA Section 1 (Environmental & Contextual Conditions) & Section 3 (Programming)."
     },
     {
       code: "PjM", name: "Project Management",
       keywords: ["schedule", "critical path", "cpm", "b101", "a101", "a201", "c401", "consultant", "work plan", "fee budget", "qa/qc", "quality control", "client meeting", "scope"],
-      competency: "Manage project work plans, CPM schedules, AIA Owner/Consultant agreements, and QA/QC reviews",
-      synergy: "Directly reinforces ARE 5.0 PjM Section 2 (Project Execution) & Section 3 (Project Quality Control)."
+      competency: "PjM-2: Manage project work plans, CPM schedules, AIA Owner/Consultant agreements, and QA/QC reviews",
+      synergy: "Directly reinforces ARE 5.0 PjM Section 2 (Project Work Planning) & Section 3 (Contracts)."
     },
     {
       code: "PcM", name: "Practice Management",
       keywords: ["multiplier", "overhead", "utilization", "marketing", "proposal", "rfp", "insurance", "llc", "llp", "corporation", "firm", "staffing", "hr", "ethics", "standard of care"],
-      competency: "Calculate firm financial metrics (Net Multiplier, Overhead Rate, Utilization) and evaluate business risk",
+      competency: "PcM-2: Calculate firm financial metrics (Net Multiplier, Overhead Rate, Utilization) and evaluate business risk",
       synergy: "Directly reinforces ARE 5.0 PcM Section 2 (Finances, Risk & Development) & Section 3 (Practice-Wide Delivery)."
     }
   ];
@@ -234,12 +224,12 @@ function classifyWorkTask(description) {
     return { ...r, hits };
   }).sort((a, b) => b.hits - a.hits);
 
-  const primary = scored[0].hits > 0 ? scored[0] : rules[1];
+  const primary = scored[0].hits > 0 ? scored[0] : rules[0];
   const secondary = scored[1];
   return {
     primary,
     secondary,
-    confidence: primary.hits >= 4 ? "98% Match" : primary.hits >= 2 ? "92% Match" : "85% Match"
+    confidence: primary.hits >= 4 ? "98% Match" : primary.hits >= 2 ? "92% Match" : "88% Match"
   };
 }
 
@@ -267,13 +257,24 @@ function renderApp() {
         </div>
       </div>
 
-      <!-- Sticky Studio Masthead -->
+      <!-- Two-Tier Sticky Studio Masthead -->
       <header class="atelier-masthead">
-        <div class="brand-lockup">
-          <div class="brand-monogram" aria-hidden="true">A</div>
-          <div class="brand-titles">
-            <h1>Atelier ARE 5.0 &amp; AXP Licensure Studio</h1>
-            <div class="brand-subtitle">NCARB · PPI2Pass · Amber Book · Black Spectacles · Walking the ARE · Hyperfine</div>
+        <div class="masthead-top-row">
+          <div class="brand-lockup">
+            <div class="brand-monogram" aria-hidden="true">A</div>
+            <div class="brand-titles">
+              <h1>Atelier ARE 5.0 &amp; AXP Licensure Studio</h1>
+              <div class="brand-subtitle">NCARB · PPI2Pass · Amber Book · Black Spectacles · Walking the ARE · Hyperfine</div>
+            </div>
+          </div>
+
+          <div class="masthead-actions">
+            <button id="btn-theme-toggle" class="btn-arch" onclick="toggleTheme()" title="Switch between Warm Vellum and Obsidian Studio Theme">
+              ${state.theme === 'light' ? '☾ Obsidian Blueprint' : '☀ Warm Vellum'}
+            </button>
+            <a href="${GOOGLE_SHEET_URL}" target="_blank" rel="noopener" class="btn-arch verdigris">
+              Google Sheet Ledger ↗
+            </a>
           </div>
         </div>
 
@@ -288,7 +289,7 @@ function renderApp() {
             <span class="tab-index">03</span> AXP Tracker &amp; Task AI
           </button>
           <button id="nav-tab-atlas" class="studio-tab ${state.tab === 'atlas' ? 'active' : ''}" onclick="switchTab('atlas')">
-            <span class="tab-index">04</span> Visual Concept Atlas &amp; Coach
+            <span class="tab-index">04</span> Visual Atlas &amp; Coach
           </button>
           <button id="nav-tab-library" class="studio-tab ${state.tab === 'library' ? 'active' : ''}" onclick="switchTab('library')">
             <span class="tab-index">05</span> Drive PDF Library (${db.driveResources.length})
@@ -297,15 +298,6 @@ function renderApp() {
             <span class="tab-index">06</span> Pass Rates &amp; Board News
           </button>
         </nav>
-
-        <div class="masthead-actions">
-          <button id="btn-theme-toggle" class="btn-arch" onclick="toggleTheme()" title="Switch between Warm Vellum and Obsidian Studio Theme">
-            ${state.theme === 'light' ? '☾ Obsidian Blueprint' : '☀ Warm Vellum'}
-          </button>
-          <a href="${GOOGLE_SHEET_URL}" target="_blank" rel="noopener" class="btn-arch verdigris">
-            Google Sheet ↗
-          </a>
-        </div>
       </header>
 
       <!-- Active Workspace View -->
@@ -373,8 +365,8 @@ function renderOverviewTab(totalAxp, avgScaled) {
       <div class="hero-visual-frame">
         <img src="${heroSrc}" alt="Architectural studio table with structural wall section blueprints, brass scale ruler, concrete and oak material samples, and basswood pavilion model" />
         <div class="hero-caption-plate">
-          <span>FIG 1.0 — ATELIER STUDIO WORKBENCH (PA · PPD · PDDTECHNICAL SYNTHESIS)</span>
-          <span>SCALE: NTS</span>
+          <span>FIG 1.0 — ATELIER STUDIO WORKBENCH (PA · PPD · PDD TECHNICAL SYNTHESIS)</span>
+          <span>SCALE: 1/4" = 1'-0"</span>
         </div>
       </div>
     </section>
@@ -389,8 +381,44 @@ function renderOverviewTab(totalAxp, avgScaled) {
           </div>
           <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">Click any vertex to inspect</span>
         </div>
-        <div class="sheet-body">
+        <div class="sheet-body" style="display:flex;flex-direction:column;justify-content:space-between;gap:1.15rem;">
           ${buildCompetencyRadarSvg()}
+
+          <!-- Scaled Score Distribution Bar Matrix -->
+          <div style="border-top:1px solid var(--hairline);padding-top:1rem;">
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);margin-bottom:0.65rem;">
+              <span>SCALED SCORE BENCHMARK (100–800 SCALE)</span>
+              <span style="color:var(--accent-terracotta);font-weight:700;">550 PASS CUT LINE (68.7%)</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.55rem;">
+              ${db.divisions.map(d => {
+                const pct = Math.round((d.readinessScaledScore / 800) * 100);
+                const pass = d.readinessScaledScore >= 550;
+                return `
+                  <div style="display:grid;grid-template-columns:52px 1fr 78px;align-items:center;gap:0.65rem;font-family:var(--font-mono);font-size:0.75rem;cursor:pointer;" onclick="selectRadarDiv('${d.code}')">
+                    <strong>${d.code}</strong>
+                    <div style="position:relative;height:9px;background:var(--bg-inset);border:1px solid var(--hairline);">
+                      <div style="width:${pct}%;height:100%;background:${pass ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'};"></div>
+                      <div style="position:absolute;left:68.75%;top:-2px;bottom:-2px;width:2px;background:var(--ink-primary);" title="550 Cut Score"></div>
+                    </div>
+                    <span style="text-align:right;font-weight:700;color:${pass ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'}">${d.readinessScaledScore}/800</span>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+
+          <!-- Provider Synthesis Footnote -->
+          <div style="background:var(--bg-elevated);border:1px solid var(--hairline);padding:0.85rem 1rem;font-size:0.78rem;">
+            <div style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--accent-cobalt);margin-bottom:0.35rem;">
+              MULTI-PROVIDER STUDY METHODOLOGY MATRIX
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem;color:var(--ink-secondary);font-size:0.76rem;">
+              ${(db.providerComparison || []).slice(0, 4).map(p => `
+                <div><strong style="color:var(--ink-primary)">${esc(p.provider)}:</strong> ${esc(p.bestFor)}</div>
+              `).join("")}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -402,7 +430,7 @@ function renderOverviewTab(totalAxp, avgScaled) {
           </div>
           <button class="btn-arch primary" onclick="launchDivisionSim('${focusDiv.code}')">Practice ${focusDiv.code} Items →</button>
         </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="sheet-body" style="display:flex;flex-direction:column;gap:0.9rem;">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;background:var(--bg-elevated);padding:0.85rem;border:1px solid var(--hairline);font-family:var(--font-mono);font-size:0.78rem;">
             <div><div style="color:var(--ink-muted)">Scaled Score</div><div style="font-size:1.1rem;font-weight:700;color:${focusDiv.readinessScaledScore >= 550 ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'}">${focusDiv.readinessScaledScore} / 800</div></div>
             <div><div style="color:var(--ink-muted)">Exam Format</div><div style="font-weight:700">${focusDiv.totalItems} Qs · ${focusDiv.testDurationDisplay}</div></div>
@@ -410,19 +438,22 @@ function renderOverviewTab(totalAxp, avgScaled) {
             <div><div style="color:var(--ink-muted)">AXP Area Req</div><div style="font-weight:700">${focusDiv.axpRequiredHours} hrs</div></div>
           </div>
 
-          <div style="font-size:0.84rem;font-family:var(--font-mono);color:var(--ink-secondary);">
+          <div style="font-size:0.82rem;font-family:var(--font-mono);color:var(--ink-secondary);">
             <strong>Legacy ARE 4.0 Crosswalk:</strong> ${esc(focusDiv.legacyAre4.join(" + "))}
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:0.65rem;">
+          <div style="display:flex;flex-direction:column;gap:0.6rem;">
             ${focusDiv.sections.map(sec => `
               <div style="border:1px solid var(--hairline);padding:0.75rem 0.95rem;background:var(--bg-canvas);">
                 <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.78rem;font-weight:700;">
-                  <span>${esc(sec.id)}: ${esc(sec.title)}</span>
-                  <span style="color:var(--accent-cobalt)">Weight: ${esc(sec.weight)} (${esc(sec.items)})</span>
+                  <span>${esc(sec.id)} — ${esc(sec.title)}</span>
+                  <span style="color:var(--accent-cobalt)">${esc(sec.weight)} (${esc(sec.expectedItems || sec.items || '12-18')} items)</span>
                 </div>
-                <ul style="margin:0.4rem 0 0;padding-left:1.15rem;font-size:0.8rem;color:var(--ink-secondary);">
-                  ${sec.objectives.map(o => `<li>${esc(o)}</li>`).join("")}
+                <ul style="margin:0.4rem 0 0;padding-left:1.15rem;font-size:0.8rem;color:var(--ink-secondary);line-height:1.45;">
+                  ${sec.objectives.map(o => {
+                    const label = typeof o === 'object' ? `${o.code}: ${o.text} [${o.level}]` : String(o);
+                    return `<li>${esc(label)}</li>`;
+                  }).join("")}
                 </ul>
               </div>
             `).join("")}
@@ -484,7 +515,7 @@ function renderOverviewTab(totalAxp, avgScaled) {
                     Launch ${d.code} Exam →
                   </button>
                   <button class="btn-arch" onclick="selectRadarDiv('${d.code}');window.scrollTo({top:420,behavior:'smooth'})">
-                    Objectives
+                    Inspect
                   </button>
                 </div>
               </div>
@@ -509,7 +540,7 @@ function renderSimulatorTab() {
 
   return `
     <!-- Filter & Mode Control Bar -->
-    <div class="arch-sheet" style="margin-top:1.25rem;padding:0.9rem 1.25rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
+    <div class="arch-sheet" style="margin-top:1.25rem;padding:0.9rem 1.25rem;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.65rem;">
         <select id="sim-flt-div" class="arch-select" style="width:auto;" onchange="applySimFilters()">
           <option value="ALL" ${state.simDivision === 'ALL' ? 'selected' : ''}>All 6 ARE 5.0 Divisions (${db.questions.length} Items)</option>
@@ -588,7 +619,7 @@ function renderSimulatorTab() {
           <div style="display:flex;flex-direction:column;gap:1.25rem;">
             <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">
               <span>ITEM ID: ${esc(q.id)} (${esc(q.type.toUpperCase())})</span>
-              <span>RIGHT-CLICK OR CLICK 'STRIKE' TO ELIMINATE DISTRACTors</span>
+              <span>CLICK 'STRIKE' TO CROSS OUT DISTRACTOR OPTIONS</span>
             </div>
 
             <div class="question-stem">${esc(q.stem)}</div>
@@ -768,9 +799,7 @@ function buildCadSiteGradingSvg(pin, rev, z) {
           <line x1="0" y1="0" x2="0" y2="3" stroke="#64748b" stroke-width="0.35" />
         </pattern>
       </defs>
-      <!-- Property Boundary & Setback Dash -->
       <rect x="3" y="3" width="94" height="64" fill="none" stroke="#1e293b" stroke-width="0.5" stroke-dasharray="3,1.5" />
-      <!-- Topographic Contours -->
       <path d="M 4 11 Q 52 27 96 9" fill="none" stroke="#854d0e" stroke-width="0.45" stroke-dasharray="2,1" />
       <text x="6" y="9.5" font-size="2.6" fill="#854d0e" font-family="monospace">EL. 102'-0"</text>
       <path d="M 4 21 Q 54 37 96 19" fill="none" stroke="#854d0e" stroke-width="0.55" />
@@ -780,18 +809,15 @@ function buildCadSiteGradingSvg(pin, rev, z) {
       <path d="M 4 51 Q 50 61 96 49" fill="none" stroke="#854d0e" stroke-width="0.55" />
       <text x="6" y="49.5" font-size="2.6" fill="#854d0e" font-family="monospace">EL. 90'-0"</text>
 
-      <!-- Existing Garage -->
       <rect x="18" y="14" width="25" height="14" fill="url(#hatch-bldg)" stroke="#0f172a" stroke-width="0.8" />
       <rect x="20" y="16" width="21" height="10" fill="#f8fafc" fill-opacity="0.88" />
       <text x="21.5" y="21" font-size="2.4" font-weight="bold" fill="#0f172a" font-family="monospace">EXISTING GARAGE</text>
       <text x="21.5" y="24.2" font-size="2.1" fill="#334155" font-family="monospace">FF EL. 102'-6"</text>
 
-      <!-- Proposed House Addition -->
       <rect x="44" y="42" width="27" height="16" fill="#e2e8f0" stroke="#0f172a" stroke-width="0.95" />
       <text x="46" y="49.5" font-size="2.5" font-weight="bold" fill="#0f172a" font-family="monospace">PROPOSED ADDITION</text>
       <text x="46" y="53" font-size="2.2" fill="#1e40af" font-family="monospace">FF EL. 90'-0" (PROTECT)</text>
 
-      <!-- North Arrow & Graphic Scale -->
       <g transform="translate(90, 58)">
         <circle cx="0" cy="0" r="3.5" fill="none" stroke="#0f172a" stroke-width="0.5" />
         <polygon points="0,-3.5 -1.4,1.5 0,0.4 1.4,1.5" fill="#0f172a" />
@@ -819,35 +845,28 @@ function buildCadWallSectionSvg(pin, rev, z) {
       <text x="6" y="7" font-size="2.6" font-weight="bold" fill="#1e40af" font-family="monospace">EXTERIOR (-10°F WINTER · CZ 6)</text>
       <text x="58" y="7" font-size="2.6" font-weight="bold" fill="#b45309" font-family="monospace">INTERIOR (+70°F · 40% RH)</text>
 
-      <!-- 1. Brick Veneer -->
       <rect x="10" y="12" width="12" height="50" fill="#c2593f" stroke="#431407" stroke-width="0.7" />
       <rect x="10" y="12" width="12" height="50" fill="url(#brick-hatch)" />
       <text x="11" y="66" font-size="2.1" font-family="monospace" fill="#0f172a">1.Brick</text>
 
-      <!-- 2. 2" Air Cavity & Weep -->
       <rect x="22" y="12" width="9" height="50" fill="#e0f2fe" stroke="#0284c7" stroke-width="0.5" />
       <text x="22.3" y="66" font-size="2.1" font-family="monospace" fill="#0369a1">2.Cavity</text>
 
-      <!-- 3. Continuous Mineral Wool -->
       <rect x="31" y="12" width="12" height="50" fill="#fef08a" stroke="#ca8a04" stroke-width="0.6" />
       <path d="M 31 16 L 43 22 L 31 28 L 43 34 L 31 40 L 43 46 L 31 52 L 43 58" fill="none" stroke="#a16207" stroke-width="0.45" />
       <text x="31.5" y="66" font-size="2.1" font-family="monospace" fill="#854d0e">3.MinWool</text>
 
-      <!-- 4. Exterior Sheathing + Air/Water Barrier -->
       <rect x="43" y="12" width="5" height="50" fill="#94a3b8" stroke="#334155" stroke-width="0.6" />
       <text x="43" y="10.5" font-size="2" font-family="monospace" fill="#334155">4.Sheath</text>
 
-      <!-- 5. 6" Cold-Formed Metal Stud + Batt -->
       <rect x="48" y="12" width="22" height="50" fill="#f8fafc" stroke="#334155" stroke-width="0.7" />
       <line x1="48" y1="12" x2="70" y2="62" stroke="#cbd5e1" stroke-width="0.5" />
       <line x1="70" y1="12" x2="48" y2="62" stroke="#cbd5e1" stroke-width="0.5" />
       <text x="52" y="38" font-size="2.4" font-weight="bold" font-family="monospace" fill="#334155">5. 6" STUD</text>
 
-      <!-- 6. Warm-Side Plane for Vapor Retarder -->
       <rect x="70" y="12" width="6" height="50" fill="#fed7aa" stroke="#ea580c" stroke-width="0.8" />
       <text x="68" y="10.5" font-size="2.2" font-weight="bold" font-family="monospace" fill="#c2410c">6.WARM FACE</text>
 
-      <!-- 7. Interior 5/8" Type X Gypsum Board -->
       <rect x="76" y="12" width="7" height="50" fill="#e2e8f0" stroke="#475569" stroke-width="0.7" />
       <text x="75.5" y="66" font-size="2.1" font-family="monospace" fill="#1e293b">7.GypBd</text>
 
@@ -863,7 +882,6 @@ function buildCadWallSectionSvg(pin, rev, z) {
 function renderAxpTab(totalAxp) {
   return `
     <div class="sheet-grid-12">
-      <!-- Left: Smart Work Task to AXP Competency Matcher -->
       <div class="col-6 arch-sheet">
         <div class="sheet-header">
           <div class="sheet-title-group">
@@ -920,7 +938,6 @@ function renderAxpTab(totalAxp) {
         </div>
       </div>
 
-      <!-- Right: 6 AXP Experience Areas Progress Matrix -->
       <div class="col-6 arch-sheet">
         <div class="sheet-header">
           <div class="sheet-title-group">
@@ -951,7 +968,6 @@ function renderAxpTab(totalAxp) {
         </div>
       </div>
 
-      <!-- Bottom Full-Width AXP Work Log Ledger -->
       <div class="col-12 arch-sheet">
         <div class="sheet-header">
           <div class="sheet-title-group">
@@ -973,7 +989,7 @@ function renderAxpTab(totalAxp) {
                   <td style="font-family:var(--font-mono);font-weight:700;">${esc(l.id)}</td>
                   <td style="font-family:var(--font-mono);">${esc(l.date)}</td>
                   <td><strong>${esc(l.project)}</strong><br/><span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">${esc(l.setting)}</span></td>
-                  <td>${esc(l.description)}<br/><span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-cobalt)">Competency: ${esc(l.competency)}</span></td>
+                  <td>${esc(l.description)}<br/><span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-cobalt)">${esc(l.competency)}</span></td>
                   <td><span class="div-code-tag">${esc(l.area)}</span></td>
                   <td style="font-family:var(--font-mono);font-weight:700;">${l.hours}h</td>
                   <td><span class="status-tag status-pass">${esc(l.status)}</span></td>
@@ -991,7 +1007,6 @@ function renderAxpTab(totalAxp) {
    TAB 04: INTERACTIVE VISUAL CONCEPT ATLAS (AMBER BOOK STYLE) & AI COACH
    ========================================================================== */
 function renderAtlasTab() {
-  // Financial Simulator Calculations
   const rev = Number(state.finRevenue);
   const dl = Number(state.finDirectLabor);
   const oh = Number(state.finOverhead);
@@ -1001,7 +1016,6 @@ function renderAtlasTab() {
   const profit = rev - dl - oh;
   const profitPct = ((profit / rev) * 100).toFixed(1);
 
-  // Zoning Envelope Calculations
   const lotArea = state.zoningLotW * state.zoningLotD;
   const maxGfa = lotArea * state.zoningFar;
   const buildW = Math.max(10, state.zoningLotW - 2 * state.zoningSetbackS);
@@ -1105,21 +1119,18 @@ function renderAtlasTab() {
           </div>
         </div>
         <div class="sheet-body">
-          <svg viewBox="0 0 420 165" style="width:100%;height:auto;display:block;border:1px solid var(--hairline);background:var(--bg-canvas);">
+          <svg viewBox="0 0 420 175" style="width:100%;height:auto;display:block;border:1px solid var(--hairline);background:var(--bg-canvas);">
             <rect x="20" y="25" width="90" height="115" fill="${state.climateMode === 'cold' ? '#dbeafe' : '#ffedd5'}" />
             <text x="65" y="45" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">EXTERIOR</text>
             <text x="65" y="62" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${state.climateMode === 'cold' ? '#1d4ed8' : '#c2410c'}">${state.climateMode === 'cold' ? '-10°F Dry' : '+95°F Humid'}</text>
 
-            <!-- Wall Assembly Core -->
             <rect x="110" y="25" width="45" height="115" fill="#b45309" fill-opacity="0.25" stroke="#78350f" />
             <text x="132" y="85" text-anchor="middle" font-family="monospace" font-size="9" fill="#1e293b">Cladding</text>
 
-            <!-- Exterior Vapor Retarder Position (Hot-Humid) -->
             <rect x="155" y="25" width="14" height="115" fill="${state.climateMode === 'humid' ? '#16a34a' : '#e2e8f0'}" />
             <rect x="169" y="25" width="95" height="115" fill="#fef08a" stroke="#ca8a04" />
             <text x="216" y="80" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#854d0e">THERMAL INSULATION</text>
 
-            <!-- Interior Vapor Retarder Position (Cold Climate) -->
             <rect x="264" y="25" width="14" height="115" fill="${state.climateMode === 'cold' ? '#16a34a' : '#e2e8f0'}" />
             <rect x="278" y="25" width="32" height="115" fill="#cbd5e1" stroke="#475569" />
             <text x="294" y="85" text-anchor="middle" font-family="monospace" font-size="9" fill="#1e293b">Gyp</text>
@@ -1128,17 +1139,16 @@ function renderAtlasTab() {
             <text x="355" y="45" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">INTERIOR</text>
             <text x="355" y="62" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">+70°F Conditioned</text>
 
-            <!-- Vapor Drive Arrow -->
-            <text x="210" y="154" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#15803d">
+            <text x="210" y="158" text-anchor="middle" font-family="monospace" font-size="9.5" font-weight="bold" fill="#15803d">
               ${state.climateMode === 'cold'
-                ? '← VAPOR DRIVE (INSIDE TO OUTSIDE) · GREEN LAYER = INTERIOR VAPOR RETARDER'
-                : '→ VAPOR DRIVE (OUTSIDE TO INSIDE) · GREEN LAYER = EXTERIOR VAPOR RETARDER'}
+                ? '← VAPOR DRIVE (IN → OUT) · GREEN = INTERIOR VAPOR RETARDER'
+                : '→ VAPOR DRIVE (OUT → IN) · GREEN = EXTERIOR VAPOR RETARDER'}
             </text>
           </svg>
         </div>
       </div>
 
-      <!-- Simulator 4: Spaced-Repetition Flashcards & AI Tutor -->
+      <!-- Simulator 4: Spaced-Repetition Flashcards -->
       <div class="col-6 arch-sheet">
         <div class="sheet-header">
           <div class="sheet-title-group">
@@ -1153,7 +1163,7 @@ function renderAtlasTab() {
               <span class="div-code-tag">${esc(card.division)} · ${esc(card.category)}</span>
               <span style="color:var(--accent-cobalt);font-weight:700;">${state.fcFlipped ? 'ANSWER SIDE (CLICK TO FLIP)' : 'PROMPT SIDE (CLICK TO FLIP)'}</span>
             </div>
-            <div style="font-family:var(--font-display);font-size:1.45rem;line-height:1.35;margin:1rem 0;">
+            <div style="font-family:var(--font-display);font-size:1.4rem;line-height:1.35;margin:0.85rem 0;">
               ${esc(state.fcFlipped ? card.back : card.front)}
             </div>
             <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">↻ Click anywhere on card surface to toggle rationale</div>
@@ -1163,6 +1173,39 @@ function renderAtlasTab() {
             <button class="btn-arch" onclick="state.fcIdx=(state.fcIdx-1+db.flashcards.length)%db.flashcards.length;state.fcFlipped=false;renderApp()">← Previous Card</button>
             <button class="btn-arch cobalt" onclick="state.fcFlipped=!state.fcFlipped;renderApp()">Flip Card ↻</button>
             <button class="btn-arch primary" onclick="state.fcIdx=(state.fcIdx+1)%db.flashcards.length;state.fcFlipped=false;renderApp()">Next Card →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- High-Yield Visual Concept Reference Cards (Amber Book Synthesis) -->
+      <div class="col-12 arch-sheet">
+        <div class="sheet-header">
+          <div class="sheet-title-group">
+            <span class="sheet-code">CONCEPTS</span>
+            <h3 class="sheet-title">High-Yield Architectural Formula &amp; Code Synthesis Plates</h3>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">Amber Book · PPI2Pass · Black Spectacles Core Takeaways</span>
+        </div>
+        <div class="sheet-body">
+          <div class="divisions-matrix" style="margin-top:0;">
+            ${(db.visualConcepts || []).map(vc => `
+              <div style="border:1px solid var(--hairline-strong);padding:1.15rem;background:var(--bg-canvas);display:flex;flex-direction:column;justify-content:space-between;gap:0.75rem;">
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.45rem;">
+                    <span class="div-code-tag">${esc(vc.division)}</span>
+                    <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">${esc(vc.id)}</span>
+                  </div>
+                  <h4 style="margin:0;font-family:var(--font-display);font-size:1.3rem;font-weight:400;">${esc(vc.title)}</h4>
+                  <div style="font-size:0.78rem;color:var(--ink-muted);margin-top:0.15rem;">${esc(vc.subtitle)}</div>
+                </div>
+                <div style="background:var(--bg-elevated);border-left:3px solid var(--accent-terracotta);padding:0.55rem 0.75rem;font-family:var(--font-mono);font-size:0.75rem;font-weight:600;">
+                  ${esc(vc.keyFormula)}
+                </div>
+                <ul style="margin:0;padding-left:1.1rem;font-size:0.8rem;color:var(--ink-secondary);line-height:1.5;">
+                  ${(vc.takeaways || []).map(t => `<li>${esc(t)}</li>`).join("")}
+                </ul>
+              </div>
+            `).join("")}
           </div>
         </div>
       </div>
@@ -1179,7 +1222,7 @@ function renderLibraryTab() {
     : db.driveResources.filter(r => r.divisions.includes(state.resFilter));
 
   return `
-    <div class="arch-sheet" style="margin-top:1.25rem;padding:1rem 1.35rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
+    <div class="arch-sheet" style="margin-top:1.25rem;padding:1rem 1.35rem;display:flex;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
       <div>
         <h3 style="margin:0;font-family:var(--font-display);font-size:1.5rem;font-weight:400;">Connected Google Drive 'ARE Study' Monograph Library (${db.driveResources.length} PDFs)</h3>
         <p style="margin:0.2rem 0 0;font-size:0.84rem;color:var(--ink-secondary);">Every PDF below has been indexed from your Google Drive folder with direct study syntheses and one-click Drive viewer links.</p>
@@ -1198,18 +1241,19 @@ function renderLibraryTab() {
         <article class="division-plate">
           <div class="division-plate-top">
             <div class="division-badge-row">
-              <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-terracotta);font-weight:700;">${esc(r.category.toUpperCase())}</span>
-              <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">${esc(r.size)}</span>
+              <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-terracotta);font-weight:700;">${esc(r.provider || r.category)}</span>
+              <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">${esc(r.pages ? r.pages + ' pp · ' : '')}${esc(r.size)}</span>
             </div>
             <h4 class="division-name" style="font-size:1.25rem;">${esc(r.title)}</h4>
             <p class="division-desc">${esc(r.summary)}</p>
           </div>
-          <div style="padding:0.9rem 1.25rem;background:var(--bg-elevated);border-bottom:1px solid var(--hairline);font-family:var(--font-mono);font-size:0.75rem;line-height:1.55;color:var(--ink-secondary);flex:1;">
-            ${esc(r.excerpt)}
+          <div style="padding:0.75rem 1.25rem;background:var(--bg-elevated);border-bottom:1px solid var(--hairline);font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-secondary);">
+            <strong>Category:</strong> ${esc(r.category)}<br/>
+            <strong>File:</strong> ${esc(r.filename)}
           </div>
           <div class="division-plate-foot" style="flex-direction:row;align-items:center;justify-content:space-between;">
             <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
-              ${r.divisions.map(d => `<span class="div-code-tag" style="font-size:0.72rem;padding:0.1rem 0.4rem;">${esc(d)}</span>`).join("")}
+              ${r.divisions.map(d => `<span class="div-code-tag" style="font-size:0.75rem;padding:0.1rem 0.4rem;">${esc(d)}</span>`).join("")}
             </div>
             <a href="${esc(r.driveUrl)}" target="_blank" rel="noopener" class="btn-arch primary" style="padding:0.4rem 0.8rem;font-size:0.75rem;">Open PDF in Drive ↗</a>
           </div>
@@ -1223,11 +1267,13 @@ function renderLibraryTab() {
    TAB 06: NATIONAL PASS/FAIL STATS & MIDWEST/CENTRAL BOARD NEWS
    ========================================================================== */
 function renderStatsTab() {
-  const st = db.midwestJurisdictions.find(j => j.code === state.midwestState) || db.midwestJurisdictions[0];
+  const reg = db.ncarbNewsAndRegional || {};
+  const jurisdictions = reg.midwestJurisdictions || [];
+  const newsFeed = reg.weeklyNewsFeed || [];
+  const st = jurisdictions.find(j => j.code === state.midwestState) || jurisdictions[0] || {};
 
   return `
     <div class="sheet-grid-12">
-      <!-- Left: National Pass Rates Matrix -->
       <div class="col-7 arch-sheet">
         <div class="sheet-header">
           <div class="sheet-title-group">
@@ -1259,7 +1305,6 @@ function renderStatsTab() {
         </div>
       </div>
 
-      <!-- Right: Midwest / Central State Board & PSI Test Center Tracker -->
       <div class="col-5 arch-sheet">
         <div class="sheet-header">
           <div class="sheet-title-group">
@@ -1267,26 +1312,25 @@ function renderStatsTab() {
             <h3 class="sheet-title">Regional Board &amp; PSI Test Centers</h3>
           </div>
           <select class="arch-select" style="width:auto;" onchange="state.midwestState=this.value;renderApp()">
-            ${db.midwestJurisdictions.map(j => `<option value="${j.code}" ${j.code === state.midwestState ? 'selected' : ''}>${esc(j.state)}</option>`).join("")}
+            ${jurisdictions.map(j => `<option value="${j.code}" ${j.code === state.midwestState ? 'selected' : ''}>${esc(j.state)}</option>`).join("")}
           </select>
         </div>
         <div class="sheet-body" style="display:flex;flex-direction:column;gap:0.9rem;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong style="font-size:1rem;">${esc(st.state)}</strong>
-            <span class="status-tag status-pass">State Pass Rate: ${st.passRate}%</span>
+            <span class="status-tag status-pass">State Pass Rate: ${st.overallPassRate || st.passRate || 57}%</span>
           </div>
-          <p style="margin:0;font-size:0.86rem;color:var(--ink-secondary);line-height:1.55;">${esc(st.rules)}</p>
+          <p style="margin:0;font-size:0.86rem;color:var(--ink-secondary);line-height:1.55;">${esc(st.boardRules || st.rules)}</p>
           <div style="background:var(--bg-elevated);padding:0.85rem;border:1px solid var(--hairline);font-family:var(--font-mono);font-size:0.76rem;">
             <strong>Active PSI Test Centers:</strong><br/>
-            ${esc(st.psiCenters.join(" · "))}
+            ${esc((st.psiCenters || []).join(" · "))}
           </div>
           <div style="background:var(--accent-brass-soft);color:var(--accent-brass);padding:0.75rem 0.9rem;font-family:var(--font-mono);font-size:0.76rem;font-weight:600;">
-            📍 Regional Bulletin: ${esc(st.alert)}
+            📍 Regional Bulletin: ${esc(st.localAlert || st.alert)}
           </div>
         </div>
       </div>
 
-      <!-- Weekly NCARB News Feed -->
       <div class="col-12 arch-sheet">
         <div class="sheet-header">
           <div class="sheet-title-group">
@@ -1295,15 +1339,16 @@ function renderStatsTab() {
           </div>
         </div>
         <div class="sheet-body">
-          <div class="divisions-matrix">
-            ${db.newsFeed.map(n => `
+          <div class="divisions-matrix" style="margin-top:0;">
+            ${newsFeed.map(n => `
               <div style="border:1px solid var(--hairline-strong);padding:1.1rem;background:var(--bg-canvas);display:flex;flex-direction:column;gap:0.45rem;">
                 <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;">
-                  <span style="color:var(--accent-terracotta);font-weight:700;">${esc(n.tag)}</span>
+                  <span style="color:var(--accent-terracotta);font-weight:700;">${esc(n.category || n.tag)}</span>
                   <span style="color:var(--ink-muted)">${esc(n.date)}</span>
                 </div>
                 <h4 style="margin:0;font-family:var(--font-display);font-size:1.25rem;font-weight:400;">${esc(n.title)}</h4>
                 <p style="margin:0;font-size:0.84rem;color:var(--ink-secondary);line-height:1.55;">${esc(n.summary)}</p>
+                <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);margin-top:auto;padding-top:0.35rem;">Source: ${esc(n.source || 'NCARB')}</div>
               </div>
             `).join("")}
           </div>
@@ -1537,7 +1582,6 @@ window.openReferenceModal = function() {
   `;
 };
 
-// Boot
 if (window.__ATELIER_DB__) {
   initData(window.__ATELIER_DB__);
 } else {
