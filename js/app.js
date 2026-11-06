@@ -412,56 +412,56 @@ function buildFacadeCadSvg(plate) {
       </defs>
 
       <!-- Top Architectural Dimension String -->
-      <line x1="82" y1="22" x2="210" y2="22" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="88" y1="16" x2="88" y2="30" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="84" y1="26" x2="92" y2="18" stroke="var(--ink)" stroke-width="1" />
-      <line x1="146" y1="16" x2="146" y2="30" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="142" y1="26" x2="150" y2="18" stroke="var(--ink)" stroke-width="1" />
-      <line x1="182" y1="16" x2="182" y2="30" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="178" y1="26" x2="186" y2="18" stroke="var(--ink)" stroke-width="1" />
-      <line x1="204" y1="16" x2="204" y2="30" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="200" y1="26" x2="208" y2="18" stroke="var(--ink)" stroke-width="1" />
+      <line x1="78" y1="22" x2="232" y2="22" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="84" y1="16" x2="84" y2="30" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="80" y1="26" x2="88" y2="18" stroke="var(--ink)" stroke-width="1" />
+      <line x1="142" y1="16" x2="142" y2="30" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="138" y1="26" x2="146" y2="18" stroke="var(--ink)" stroke-width="1" />
+      <line x1="188" y1="16" x2="188" y2="30" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="184" y1="26" x2="192" y2="18" stroke="var(--ink)" stroke-width="1" />
+      <line x1="226" y1="16" x2="226" y2="30" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="222" y1="26" x2="230" y2="18" stroke="var(--ink)" stroke-width="1" />
 
-      <text x="117" y="14" text-anchor="middle" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">${esc(plate.dims[0])}</text>
-      <text x="164" y="14" text-anchor="middle" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">${esc(plate.dims[1])}</text>
-      <text x="195" y="14" text-anchor="middle" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">${esc(plate.dims[2])}</text>
+      <text x="113" y="13" text-anchor="middle" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">${esc(plate.dims[0])}</text>
+      <text x="165" y="13" text-anchor="middle" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">${esc(plate.dims[1])}</text>
+      <text x="209" y="13" text-anchor="middle" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">${esc(plate.dims[2])}</text>
 
       <!-- Left Vertical Dimension -->
-      <line x1="68" y1="34" x2="68" y2="185" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="64" y1="38" x2="72" y2="30" stroke="var(--ink)" stroke-width="1" />
-      <line x1="64" y1="189" x2="72" y2="181" stroke="var(--ink)" stroke-width="1" />
-      <text x="58" y="110" text-anchor="middle" transform="rotate(-90 58 110)" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">2.1m</text>
+      <line x1="64" y1="34" x2="64" y2="185" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="60" y1="38" x2="68" y2="30" stroke="var(--ink)" stroke-width="1" />
+      <line x1="60" y1="189" x2="68" y2="181" stroke="var(--ink)" stroke-width="1" />
+      <text x="54" y="110" text-anchor="middle" transform="rotate(-90 54 110)" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">2.1m</text>
 
       <!-- Wall Layers -->
-      <rect x="88" y="34" width="58" height="151" fill="url(#cad-concrete)" stroke="var(--ink)" stroke-width="1.2" />
-      <rect x="146" y="34" width="36" height="151" fill="var(--vellum-hover)" stroke="var(--ink)" stroke-width="1" />
-      <path d="M 146 34 L 182 59 L 146 84 L 182 109 L 146 134 L 182 159 L 146 185" fill="none" stroke="var(--ink)" stroke-width="0.65" />
-      <path d="M 182 34 L 146 59 L 182 84 L 146 109 L 182 134 L 146 159 L 182 185" fill="none" stroke="var(--ink)" stroke-width="0.65" />
-      <rect x="182" y="34" width="10" height="151" fill="var(--vellum-light)" stroke="var(--ink)" stroke-width="0.85" />
-      <rect x="192" y="34" width="12" height="151" fill="rgba(41,72,184,0.12)" stroke="var(--ink)" stroke-width="1.15" />
+      <rect x="84" y="34" width="58" height="151" fill="url(#cad-concrete)" stroke="var(--ink)" stroke-width="1.2" />
+      <rect x="142" y="34" width="46" height="151" fill="var(--vellum-hover)" stroke="var(--ink)" stroke-width="1" />
+      <path d="M 142 34 L 188 59 L 142 84 L 188 109 L 142 134 L 188 159 L 142 185" fill="none" stroke="var(--ink)" stroke-width="0.65" />
+      <path d="M 188 34 L 142 59 L 188 84 L 142 109 L 188 134 L 142 159 L 188 185" fill="none" stroke="var(--ink)" stroke-width="0.65" />
+      <rect x="188" y="34" width="18" height="151" fill="var(--vellum-light)" stroke="var(--ink)" stroke-width="0.85" />
+      <rect x="206" y="34" width="20" height="151" fill="rgba(41,72,184,0.12)" stroke="var(--ink)" stroke-width="1.15" />
 
-      <rect x="104" y="132" width="90" height="8" fill="var(--vellum-tab)" stroke="var(--ink)" stroke-width="1.1" />
-      <rect x="184" y="122" width="22" height="26" fill="none" stroke="var(--ink)" stroke-width="1.4" />
+      <rect x="102" y="132" width="104" height="8" fill="var(--vellum-tab)" stroke="var(--ink)" stroke-width="1.1" />
+      <rect x="196" y="122" width="32" height="26" fill="none" stroke="var(--ink)" stroke-width="1.4" />
 
       <!-- 5 Callout Leaders -->
-      <circle cx="136" cy="54" r="2" fill="var(--ink)" />
-      <line x1="136" y1="54" x2="250" y2="54" stroke="var(--ink)" stroke-width="0.85" />
+      <circle cx="128" cy="54" r="2" fill="var(--ink)" />
+      <line x1="128" y1="54" x2="250" y2="54" stroke="var(--ink)" stroke-width="0.85" />
       <text x="256" y="57" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[0])}</text>
 
-      <circle cx="168" cy="78" r="2" fill="var(--ink)" />
-      <line x1="168" y1="78" x2="250" y2="78" stroke="var(--ink)" stroke-width="0.85" />
+      <circle cx="165" cy="78" r="2" fill="var(--ink)" />
+      <line x1="165" y1="78" x2="250" y2="78" stroke="var(--ink)" stroke-width="0.85" />
       <text x="256" y="81" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[1])}</text>
 
-      <circle cx="198" cy="102" r="2" fill="var(--ink)" />
-      <line x1="198" y1="102" x2="250" y2="102" stroke="var(--ink)" stroke-width="0.85" />
+      <circle cx="216" cy="102" r="2" fill="var(--ink)" />
+      <line x1="216" y1="102" x2="250" y2="102" stroke="var(--ink)" stroke-width="0.85" />
       <text x="256" y="105" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[2])}</text>
 
-      <circle cx="204" cy="126" r="2" fill="var(--ink)" />
-      <line x1="204" y1="126" x2="250" y2="126" stroke="var(--ink)" stroke-width="0.85" />
+      <circle cx="226" cy="126" r="2" fill="var(--ink)" />
+      <line x1="226" y1="126" x2="250" y2="126" stroke="var(--ink)" stroke-width="0.85" />
       <text x="256" y="129" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[3])}</text>
 
-      <circle cx="145" cy="136" r="2" fill="var(--ink)" />
-      <line x1="145" y1="136" x2="250" y2="150" stroke="var(--ink)" stroke-width="0.85" />
+      <circle cx="148" cy="136" r="2" fill="var(--ink)" />
+      <line x1="148" y1="136" x2="250" y2="150" stroke="var(--ink)" stroke-width="0.85" />
       <text x="256" y="153" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[4])}</text>
 
       <!-- Bottom-Right Scale Titleblock (Fits comfortably inside 256..475) -->
