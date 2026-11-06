@@ -1050,27 +1050,27 @@ window.runTaskClassifier = function(shouldRender) {
   if (!db) return;
   const text = (state.taskDesc || "").toLowerCase();
   const rules = [
-    { code: "PcM", kw: ["fee", "multiplier", "overhead", "contract", "b101", "proposal", "insurance", "firm", "marketing", "billing"] },
-    { code: "PjM", kw: ["schedule", "cpm", "rfi", "consultant", "budget", "meeting", "work plan", "coordination", "kickoff"] },
-    { code: "PA",  kw: ["zoning", "setback", "far", "site", "topography", "soil", "program", "adjacency", "survey", "daylight"] },
-    { code: "PPD", kw: ["schematic", "massing", "hvac", "structural", "egress", "life safety", "acoustic", "sustainability", "layout"] },
-    { code: "PDD", kw: ["revit", "detail", "wall section", "flashing", "spec", "masterformat", "curtain wall", "CD", "door schedule", "waterproof"] },
-    { code: "CE",  kw: ["punchlist", "shop drawing", "submittal", "pay app", "g702", "site visit", "field report", "asi", "change order", "closeout"] }
+    { code: "PcM", task: "Develop and manage firm business operations, fee proposals, and AIA B101 agreements", kw: ["fee", "multiplier", "overhead", "contract", "b101", "proposal", "insurance", "firm", "marketing", "billing"] },
+    { code: "PjM", task: "Manage project work plans, CPM schedules, consultant coordination, and QA/QC reviews", kw: ["schedule", "cpm", "rfi", "consultant", "budget", "meeting", "work plan", "coordination", "kickoff"] },
+    { code: "PA",  task: "Perform site analysis, zoning/FAR verification, geotechnical review, and space programming", kw: ["zoning", "setback", "far", "site", "topography", "soil", "program", "adjacency", "survey", "daylight"] },
+    { code: "PPD", task: "Select structural/MEP building systems, life-safety egress layouts, and schematic design massing", kw: ["schematic", "massing", "hvac", "structural", "egress", "life safety", "acoustic", "sustainability", "layout"] },
+    { code: "PDD", task: "Prepare construction document drawings, wall sections, flashing details, and CSI specifications", kw: ["revit", "detail", "wall section", "flashing", "spec", "masterformat", "curtain wall", "cd", "door schedule", "waterproof"] },
+    { code: "CE",  task: "Review shop drawings/submittals, certify G702/G703 pay applications, and conduct site observations", kw: ["punchlist", "shop drawing", "submittal", "pay app", "g702", "site visit", "field report", "asi", "change order", "closeout"] }
   ];
 
-  let best = "PDD", maxHits = 0;
+  let bestRule = rules[4], maxHits = 0;
   rules.forEach(r => {
     let hits = 0;
     r.kw.forEach(k => { if (text.includes(k)) hits++; });
-    if (hits > maxHits) { maxHits = hits; best = r.code; }
+    if (hits > maxHits) { maxHits = hits; bestRule = r; }
   });
 
-  const area = db.axpData.areas.find(a => a.code === best) || db.axpData.areas[4];
+  const area = db.axpData.areas.find(a => a.code === bestRule.code) || db.axpData.areas[4];
   state.taskRec = {
     code: area.code,
     areaName: area.name,
     confidence: Math.min(98, 82 + maxHits * 5),
-    matchedTask: area.tasks[0]
+    matchedTask: (area.tasks && area.tasks[0]) || bestRule.task
   };
   if (shouldRender) render();
 };
