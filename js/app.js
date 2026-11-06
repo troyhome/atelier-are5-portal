@@ -539,11 +539,12 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
   const axpRemForDiv = Number((axpForDiv.requiredHours - axpForDiv.totalLogged).toFixed(2));
 
   // Filter matching Google Drive PDFs for this division
-  const matchingPdfs = (db.driveResources || []).filter(r =>
-    r.division === focusDiv.code ||
-    r.division === "ALL" ||
-    studyInfo.pdfKeywords.some(k => r.name.toLowerCase().includes(k.toLowerCase()))
-  ).slice(0, 4);
+  const matchingPdfs = (db.driveResources || []).filter(r => {
+    const label = String(r.title || r.name || r.filename || "").toLowerCase();
+    return (Array.isArray(r.divisions) && r.divisions.includes(focusDiv.code)) ||
+      r.division === focusDiv.code ||
+      studyInfo.pdfKeywords.some(k => label.includes(k.toLowerCase()));
+  }).slice(0, 4);
 
   return `
     <div class="overview-grid">
@@ -617,9 +618,9 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
 
             <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:0.5rem;">
               ${matchingPdfs.map(r => `
-                <a href="${esc(r.url)}" target="_blank" rel="noopener" style="border:var(--rule);background:var(--vellum-light);padding:0.55rem 0.7rem;text-decoration:none;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
+                <a href="${esc(r.driveUrl || r.url)}" target="_blank" rel="noopener" style="border:var(--rule);background:var(--vellum-light);padding:0.55rem 0.7rem;text-decoration:none;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
                   <div style="overflow:hidden;">
-                    <div style="font-size:0.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.name)}</div>
+                    <div style="font-size:0.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.title || r.name || r.filename)}</div>
                     <div style="font-family:var(--font-mono);font-size:0.66rem;color:var(--ink-muted);">${esc(r.category)}</div>
                   </div>
                   <span style="font-family:var(--font-mono);font-size:0.72rem;font-weight:700;color:var(--cobalt);flex-shrink:0;">PDF ↗</span>
@@ -1111,22 +1112,26 @@ function renderCalmArchive(focusDiv) {
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(295px, 1fr));gap:0.75rem;">
-        ${(db.driveResources || []).map(r => `
-          <div style="border:var(--rule);background:${r.division === focusDiv.code ? 'var(--vellum-card)' : 'var(--vellum-light)'};padding:0.85rem;display:flex;flex-direction:column;justify-content:space-between;gap:0.65rem;">
-            <div>
-              <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.7rem;color:var(--ink-muted);">
-                <span><strong>${esc(r.division)}</strong></span>
-                <span>${esc(r.category)}</span>
+        ${(db.driveResources || []).map(r => {
+          const isMatch = (Array.isArray(r.divisions) && r.divisions.includes(focusDiv.code)) || r.division === focusDiv.code;
+          const divLabel = Array.isArray(r.divisions) ? r.divisions.join(", ") : (r.division || "ALL");
+          return `
+            <div style="border:var(--rule);background:${isMatch ? 'var(--vellum-card)' : 'var(--vellum-light)'};padding:0.85rem;display:flex;flex-direction:column;justify-content:space-between;gap:0.65rem;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.7rem;color:var(--ink-muted);">
+                  <span><strong>${esc(divLabel)}</strong></span>
+                  <span>${esc(r.category)}</span>
+                </div>
+                <div style="font-weight:700;font-size:0.9rem;margin-top:0.25rem;">${esc(r.title || r.name || r.filename)}</div>
+                <div style="font-size:0.76rem;color:var(--ink-secondary);margin-top:0.25rem;">${esc(r.summary || r.notes || "")}</div>
               </div>
-              <div style="font-weight:700;font-size:0.9rem;margin-top:0.25rem;">${esc(r.name)}</div>
-              <div style="font-size:0.76rem;color:var(--ink-secondary);margin-top:0.25rem;">${esc(r.notes)}</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--rule-subtle);padding-top:0.5rem;">
+                <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--ink-muted);">${esc(r.provider)}</span>
+                <a class="swiss-btn" style="padding:0.25rem 0.6rem;font-size:0.74rem;" href="${esc(r.driveUrl || r.url)}" target="_blank" rel="noopener">OPEN PDF ↗</a>
+              </div>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--rule-subtle);padding-top:0.5rem;">
-              <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--ink-muted);">${esc(r.provider)}</span>
-              <a class="swiss-btn" style="padding:0.25rem 0.6rem;font-size:0.74rem;" href="${esc(r.url)}" target="_blank" rel="noopener">OPEN PDF ↗</a>
-            </div>
-          </div>
-        `).join("")}
+          `;
+        }).join("")}
       </div>
     </div>
   `;
