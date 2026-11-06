@@ -1,42 +1,104 @@
 /* ==========================================================================
-   ATELIER ARE 5.0 & AXP LICENSURE PORTAL — INTERACTIVE ENGINE (PASS 2)
+   ATELIER ARE 5.0 — PURPOSE-DRIVEN ENGINE + MYNCARB SYNC
    ========================================================================== */
 
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1bLGH_YofHmm9wYqN4Vzu7RJ3PuEuocV_lL7DidNsJwQ/edit";
 const DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1byu3GdNMRKkKVPfkb-XYmMLPF1pIOxr3";
+const MYNCARB_EXP_URL = "https://my.ncarb.org/apps/experience";
 
 let db = window.__ATELIER_DB__ || null;
 
+const CAD_PLATES = {
+  PcM: {
+    title: "PRACTICE FINANCIAL MULTIPLIER SYSTEM",
+    scale: "RATIO 3.00x",
+    dims: ["2.1m", "140mm", "35mm"],
+    labels: [
+      "NET OPERATING REVENUE (NOR ÷ DL = 3.00x)",
+      "DIRECT BILLABLE LABOR ($1.40M BASE)",
+      "INDIRECT OVERHEAD (1.50x OVERHEAD RATE)",
+      "BREAK-EVEN MULTIPLIER (1 + OH = 2.50x)",
+      "NET PROFIT TARGET (+16.7% MARGIN)"
+    ]
+  },
+  PjM: {
+    title: "CRITICAL PATH & AIA CONTRACT SYSTEM",
+    scale: "AIA B101 / A201",
+    dims: ["2.1m", "140mm", "35mm"],
+    labels: [
+      "AIA B101 OWNER-ARCHITECT AGREEMENT",
+      "AIA C401 STRUCTURAL / MEP CONSULTANTS",
+      "CRITICAL PATH (ZERO FLOAT = 0 DAYS)",
+      "AIA G714 CONSTRUCTION CHANGE DIRECTIVE",
+      "AIA G701 CHANGE ORDER (3 SIGNATURES)"
+    ]
+  },
+  PA: {
+    title: "SITE GRADING & ZONING FAR ENVELOPE",
+    scale: "1\" = 20'-0\"",
+    dims: ["2.1m", "140mm", "35mm"],
+    labels: [
+      "MAX GFA = FAR × TOTAL LOT AREA",
+      "PROPERTY LINE & 10'-0\" FRONT SETBACK",
+      "DIVERSION SWALE (MIN 2.0% DRAINAGE)",
+      "SOUTH HORIZONTAL LOUVER OVERHANG",
+      "PHASE I ESA (ASTM E1527) SITE BOUNDARY"
+    ]
+  },
+  PPD: {
+    title: "LONG-SPAN STEEL & HVAC SYSTEM",
+    scale: "1/2\" = 1'-0\"",
+    dims: ["2.1m", "140mm", "35mm"],
+    labels: [
+      "WIDE-FLANGE STEEL GIRDER (E = 29,000 KSI)",
+      "MOMENT OF INERTIA (I) DEFLECTION CONTROL",
+      "DEDICATED OUTDOOR AIR SYSTEM (DOAS)",
+      "ACOUSTICAL ABSORPTION PLENUM BAFFLE",
+      "2-HOUR FIRE BARRIER SHAFT ENCLOSURE"
+    ]
+  },
+  PDD: {
+    title: "HIGH-RISE FACADE SYSTEM",
+    scale: "1m",
+    dims: ["2.1m", "140mm", "35mm"],
+    labels: [
+      "PRECAST CONCRETE PANEL",
+      "INSULATION",
+      "TRIPLE GLAZING",
+      "ALUMINUM FRAMING",
+      "ANCHOR"
+    ]
+  },
+  CE: {
+    title: "EXTERIOR MASONRY FLASHING & WEEP DETAIL",
+    scale: "3\" = 1'-0\"",
+    dims: ["2.1m", "140mm", "35mm"],
+    labels: [
+      "FACE BRICK VENEER & MORTAR JOINT",
+      "2\" CLEAR DRAINAGE AIR CAVITY",
+      "STAINLESS THROUGH-WALL FLASHING & DRIP",
+      "WEEP HOLES @ 24\" O.C. ABOVE STEEL LINTEL",
+      "INTERIOR WARM-SIDE VAPOR RETARDER"
+    ]
+  }
+};
+
 const state = {
-  theme: localStorage.getItem("atelier_theme") || "light",
+  theme: localStorage.getItem("atelier_theme_v4") || "light",
   tab: "overview",
-  radarFocus: "PjM",
-  simDivision: "ALL",
-  simLegacy: "ALL",
-  simType: "ALL",
-  simItems: [],
-  simIdx: 0,
-  simAnswers: {},
-  simRevealed: {},
-  simFlags: {},
-  simStrikes: {},
-  simCaseTab: 0,
-  simSeconds: 160 * 60,
-  simReport: null,
+  activeDiv: "PDD", // Default to PDD where user has 488.25 hours + High-Rise Facade System plate
+  examPool: [],
+  examIdx: 0,
+  examLegacy: "ALL",
+  examAnswers: {},
+  examRevealed: {},
+  examStrikes: {},
+  examCaseTab: 0,
+  axpTaskInput: "Reviewed contractor submittal log, curtain wall shop drawings, and issued ASI #4",
+  axpProject: "Indiana Civic Renovation",
+  axpHours: 8.0,
   axpSuggestion: null,
-  finRevenue: 4200000,
-  finDirectLabor: 1400000,
-  finOverhead: 2100000,
-  climateMode: "cold",
-  zoningLotW: 100,
-  zoningLotD: 150,
-  zoningFar: 2.0,
-  zoningSetbackF: 10,
-  zoningSetbackS: 5,
-  fcIdx: 0,
-  fcFlipped: false,
-  resFilter: "ALL",
-  midwestState: "IL"
+  midwestState: "IN"
 };
 
 function esc(s) {
@@ -47,677 +109,477 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
-function initData(loadedDb) {
-  db = loadedDb;
+function initPortal() {
+  if (!db) return;
   try {
-    const savedLogs = localStorage.getItem("atelier_axp_logs_v3");
-    const savedAreas = localStorage.getItem("atelier_axp_areas_v3");
-    if (savedLogs) db.axpData.workLogs = JSON.parse(savedLogs);
+    const savedAreas = localStorage.getItem("atelier_myncarb_areas_v4");
+    const savedLogs = localStorage.getItem("atelier_myncarb_logs_v4");
     if (savedAreas) db.axpData.areas = JSON.parse(savedAreas);
+    if (savedLogs) db.axpData.workLogs = JSON.parse(savedLogs);
   } catch (e) {}
-  state.simItems = [...db.questions];
   document.documentElement.setAttribute("data-theme", state.theme);
-  renderApp();
+  filterExamPool();
+  render();
 }
 
-function toggleTheme() {
+function saveAxpToStorage() {
+  try {
+    localStorage.setItem("atelier_myncarb_areas_v4", JSON.stringify(db.axpData.areas));
+    localStorage.setItem("atelier_myncarb_logs_v4", JSON.stringify(db.axpData.workLogs));
+  } catch (e) {}
+}
+
+window.toggleTheme = function() {
   state.theme = state.theme === "light" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", state.theme);
-  localStorage.setItem("atelier_theme", state.theme);
-  renderApp();
-}
+  localStorage.setItem("atelier_theme_v4", state.theme);
+  render();
+};
 
-function saveAxpState() {
-  try {
-    localStorage.setItem("atelier_axp_logs_v3", JSON.stringify(db.axpData.workLogs));
-    localStorage.setItem("atelier_axp_areas_v3", JSON.stringify(db.axpData.areas));
-  } catch (e) {}
-}
-
-function formatTimer(sec) {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-setInterval(() => {
-  if (state.tab === "simulator" && state.simSeconds > 0) {
-    state.simSeconds--;
-    const el = document.getElementById("psi-live-clock");
-    if (el) el.textContent = formatTimer(state.simSeconds);
+function filterExamPool() {
+  let pool = db.questions.filter(q => q.division === state.activeDiv);
+  if (state.examLegacy !== "ALL") {
+    pool = db.questions.filter(q => q.legacyExam === state.examLegacy);
   }
-}, 1000);
+  state.examPool = pool.length ? pool : [...db.questions];
+  state.examIdx = 0;
+}
+
+window.selectDivision = function(code) {
+  state.activeDiv = code;
+  filterExamPool();
+  render();
+};
+
+window.switchTopTab = function(tab) {
+  state.tab = tab;
+  render();
+};
 
 /* ==========================================================================
-   SVG RADAR / SPIDER COMPETENCY CHART (NO LABEL OVERLAP + SCALED DISTRIBUTION)
+   MASTER RENDER
    ========================================================================== */
-function buildCompetencyRadarSvg() {
+function render() {
+  if (!db) return;
+  const root = document.getElementById("app-root");
+  const focusDiv = db.divisions.find(d => d.code === state.activeDiv) || db.divisions[0];
+  const totalApproved = Number(db.axpData.areas.reduce((s, a) => s + Number(a.totalLogged || 0), 0).toFixed(2));
+  const totalReq = 3740;
+  const totalRem = Number((totalReq - totalApproved).toFixed(2));
+
+  root.innerHTML = `
+    <div class="atelier-frame">
+      <!-- ROW 1: SLIM MASTHEAD (NO BLOAT ABOVE TABS) -->
+      <header class="masthead-row">
+        <div class="masthead-icon-cell" aria-hidden="true">☰</div>
+        <div class="masthead-brand-cell">
+          <h1 class="masthead-brand-title">ATELIER ARE 5.0</h1>
+          <div class="masthead-status-strip">
+            <span>AXP TOTAL: <strong>${totalApproved.toLocaleString()} / 3,740 HRS</strong> (${totalRem.toLocaleString()} REM)</span>
+            <span>JURISDICTION: <strong>INDIANA</strong></span>
+          </div>
+        </div>
+        <div class="masthead-utils">
+          <button class="util-cell-btn" onclick="openMyNcarbSyncModal()" title="Sign in to MyNCARB or update synced AXP hours">
+            <span class="sync-dot"></span> MYNCARB SYNC
+          </button>
+          <a href="${GOOGLE_SHEET_URL}" target="_blank" rel="noopener" class="util-cell-btn" title="Open Synced Google Sheet">
+            SHEET ↗
+          </a>
+          <button class="util-cell-btn" onclick="toggleTheme()" title="Toggle Warm Vellum / Dark Mode">
+            ${state.theme === 'light' ? '☾' : '☀'}
+          </button>
+        </div>
+      </header>
+
+      <!-- ROW 2: SUBNAV BAR -->
+      <div class="subnav-row">
+        <div class="subnav-empty-cell"></div>
+        <div class="subnav-division-hdr">DIVISION</div>
+        <div class="subnav-spacer">
+          ${focusDiv.code} — ${esc(focusDiv.name)} · ${focusDiv.totalItems} Items (${focusDiv.testDurationDisplay}) · Nat'l Pass: ${focusDiv.passRates['2025']}%
+        </div>
+        <nav class="subnav-tabs" aria-label="Workspace Views">
+          <button id="tab-overview" class="subnav-tab-btn ${state.tab === 'overview' ? 'active' : ''}" onclick="switchTopTab('overview')">OVERVIEW</button>
+          <button id="tab-exam" class="subnav-tab-btn ${state.tab === 'exam' ? 'active' : ''}" onclick="switchTopTab('exam')">PRACTICE EXAM</button>
+          <button id="tab-axp" class="subnav-tab-btn ${state.tab === 'axp' ? 'active' : ''}" onclick="switchTopTab('axp')">AXP HOURS</button>
+          <button id="tab-archive" class="subnav-tab-btn ${state.tab === 'archive' ? 'active' : ''}" onclick="switchTopTab('archive')">ARCHIVE</button>
+        </nav>
+      </div>
+
+      <!-- ROW 3: LEFT 6-DIVISION SPINE + ACTIVE VIEW -->
+      <div class="workspace-row">
+        <aside class="division-spine" aria-label="Six ARE 5.0 Divisions">
+          ${db.divisions.map(d => {
+            const isAct = state.activeDiv === d.code;
+            const axpArea = db.axpData.areas.find(a => a.code === d.code) || { totalLogged: 0, requiredHours: d.axpRequiredHours };
+            return `
+              <button class="spine-row ${isAct ? 'active' : ''}" onclick="selectDivision('${d.code}')">
+                <div class="spine-num">${d.number}</div>
+                <div class="spine-content">
+                  <div class="spine-code">${d.code}</div>
+                  <div class="spine-title">${esc(d.name)}</div>
+                  <div class="spine-axp-mini">AXP: ${axpArea.totalLogged} / ${axpArea.requiredHours}h</div>
+                </div>
+              </button>
+            `;
+          }).join("")}
+          <div class="spine-footer">
+            <span>⠿ INDIANA PLA</span>
+            <span>550 CUT</span>
+          </div>
+        </aside>
+
+        <main>
+          ${state.tab === "overview" ? renderCalmOverview(focusDiv, totalApproved, totalRem) : ""}
+          ${state.tab === "exam" ? renderCalmExam(focusDiv) : ""}
+          ${state.tab === "axp" ? renderCalmAxp(totalApproved, totalRem) : ""}
+          ${state.tab === "archive" ? renderCalmArchive(focusDiv) : ""}
+        </main>
+      </div>
+    </div>
+  `;
+}
+
+/* ==========================================================================
+   VIEW 1: CALM 3-PANE OVERVIEW (EXACT MATCH TO ATTACHED AESTHETIC + REAL AXP)
+   ========================================================================== */
+function renderCalmOverview(focusDiv, totalApproved, totalRem) {
+  const plate = CAD_PLATES[focusDiv.code] || CAD_PLATES.PDD;
+
+  return `
+    <div class="overview-grid">
+      <!-- LEFT PANE: DIVISION PROFICIENCY HATCHED RADAR -->
+      <section class="pane-left-radar">
+        <div class="pane-heading">
+          <span>DIVISION PROFICIENCY</span>
+          <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);font-weight:500;">CLICK ANY AXIS TO SELECT</span>
+        </div>
+
+        <div style="margin:auto 0;padding:0.25rem 0;">
+          ${buildHatchedRadarSvg()}
+        </div>
+
+        <div style="border-top:var(--rule);padding-top:0.8rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.75rem;">
+          <div style="font-family:var(--font-mono);font-size:0.76rem;">
+            <strong>${focusDiv.code} READINESS:</strong> ${focusDiv.readinessScaledScore} / 800 SCALED
+          </div>
+          <button class="swiss-btn terracotta" onclick="switchTopTab('exam')">
+            PRACTICE ${focusDiv.code} EXAM (${db.questions.filter(q => q.division === focusDiv.code).length} Qs) →
+          </button>
+        </div>
+      </section>
+
+      <!-- RIGHT STACK: TOP ORTHOGRAPHIC CAD PLATE + BOTTOM AXP STATUS -->
+      <div class="pane-right-stack">
+        <!-- TOP-RIGHT PANE: HIGH-PRECISION ORTHOGRAPHIC CAD PLATE -->
+        <section class="pane-top-cad">
+          <div class="pane-heading">
+            <span>${esc(plate.title)}</span>
+            <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);">${focusDiv.code} PLATE</span>
+          </div>
+
+          <div style="margin:0.2rem 0;">
+            ${buildFacadeCadSvg(plate)}
+          </div>
+        </section>
+
+        <!-- BOTTOM-RIGHT PANE: CURRENT AXP STATUS (USER'S ACTUAL MYNCARB HOURS) -->
+        <section class="pane-bottom-axp">
+          <div>
+            <div class="pane-heading">
+              <span>CURRENT AXP STATUS (MYNCARB)</span>
+              <span style="font-family:var(--font-sans);font-size:0.9rem;font-weight:500;text-transform:none;">3,740 hours required</span>
+            </div>
+
+            <table class="axp-clean-table">
+              <tbody>
+                ${db.axpData.areas.map((a, idx) => {
+                  const pct = Math.min(100, ((a.totalLogged / a.requiredHours) * 100)).toFixed(1);
+                  const barWidth = Math.max(2, Math.round((a.totalLogged / a.requiredHours) * 100));
+                  const color = idx === 4 || idx === 0 ? "var(--terracotta)" : "var(--cobalt)";
+                  return `
+                    <tr>
+                      <td class="lbl">${esc(a.code)}</td>
+                      <td class="bar-cell">
+                        <div style="width:100%;height:12px;background:var(--vellum-tab);">
+                          <div style="width:${barWidth}%;height:100%;background:${color};"></div>
+                        </div>
+                      </td>
+                      <td class="pct-cell">${pct}%</td>
+                      <td class="hrs-cell"><strong>${a.totalLogged}</strong> / ${a.requiredHours}</td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="axp-summary-footer">
+            <div>
+              <h2 class="axp-serif-callout">
+                AXP PROGRESS:<br/>
+                ${totalApproved.toLocaleString()} / 3,740 HOURS<br/>
+                APPROVED
+              </h2>
+              <div style="font-size:0.75rem;color:var(--ink-muted);margin-top:0.25rem;display:flex;gap:0.75rem;align-items:center;">
+                <span>${totalRem.toLocaleString()} hrs remaining · 0 submitted</span>
+                <button class="swiss-btn" style="padding:0.22rem 0.6rem;font-size:0.75rem;" onclick="openMyNcarbSyncModal()">SYNC / EDIT HOURS</button>
+              </div>
+            </div>
+
+            <!-- Compact Remaining Breakdown (Right side of AXP Footer) -->
+            <div style="border-left:var(--rule);padding-left:0.85rem;font-family:var(--font-mono);font-size:0.72rem;">
+              ${db.axpData.areas.map(a => {
+                const rem = Number((a.requiredHours - a.totalLogged).toFixed(2));
+                return `
+                  <div style="display:flex;justify-content:space-between;padding:0.14rem 0;border-bottom:var(--rule-subtle);">
+                    <span><strong>${a.code}</strong> Rem:</span>
+                    <span>${rem.toLocaleString()} hrs</span>
+                  </div>
+                `;
+              }).join("")}
+              <div style="display:flex;justify-content:space-between;padding-top:0.2rem;color:var(--ink-muted);font-size:0.68rem;">
+                <span>INDIANA PLA</span><span>NO EXTRA REQ</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  `;
+}
+
+function buildHatchedRadarSvg() {
   const divs = db.divisions;
-  const cx = 200, cy = 152, maxR = 104;
+  const cx = 220, cy = 182, maxR = 132;
   const angles = divs.map((_, i) => (-Math.PI / 2) + (i * 2 * Math.PI / divs.length));
 
-  const pt = (angle, score) => {
-    const ratio = Math.max(0.15, Math.min(1, (score - 200) / 600));
-    const r = ratio * maxR;
-    return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
-  };
+  const pt = (angle, ratio) => [
+    cx + ratio * maxR * Math.cos(angle),
+    cy + ratio * maxR * Math.sin(angle)
+  ];
 
-  const ringScores = [350, 550, 675, 800];
-  const ringsSvg = ringScores.map(sc => {
-    const pts = angles.map(a => pt(a, sc).map(n => n.toFixed(1)).join(",")).join(" ");
-    const isCut = sc === 550;
-    return `<polygon points="${pts}" fill="none" stroke="${isCut ? 'var(--accent-terracotta)' : 'var(--hairline-strong)'}" stroke-width="${isCut ? '1.6' : '0.8'}" ${isCut ? 'stroke-dasharray="4,3"' : ''} />`;
-  }).join("");
+  const outerPts = angles.map(a => pt(a, 1).map(n => n.toFixed(1)).join(",")).join(" ");
+  const midPts = angles.map(a => pt(a, 0.6875).map(n => n.toFixed(1)).join(",")).join(" ");
 
-  const axesSvg = divs.map((d, i) => {
-    const [xEnd, yEnd] = pt(angles[i], 800);
-    const lx = cx + (maxR + 28) * Math.cos(angles[i]);
-    const ly = cy + (maxR + 22) * Math.sin(angles[i]);
-    const isSel = state.radarFocus === d.code;
+  let sectorHatch = "";
+  for (let s = 1; s <= 16; s++) {
+    const r = s / 16;
+    const ringPts = angles.map(a => pt(a, r).map(n => n.toFixed(1)).join(",")).join(" ");
+    sectorHatch += `<polygon points="${ringPts}" fill="none" stroke="var(--ink)" stroke-width="0.35" stroke-opacity="0.35" />`;
+  }
+
+  const spokesSvg = divs.map((d, i) => {
+    const [x, y] = pt(angles[i], 1);
+    const lx = cx + (maxR + 30) * Math.cos(angles[i]);
+    const ly = cy + (maxR + 25) * Math.sin(angles[i]);
+    const pct = Math.round((d.readinessScaledScore / 800) * 100);
     return `
-      <line x1="${cx}" y1="${cy}" x2="${xEnd.toFixed(1)}" y2="${yEnd.toFixed(1)}" stroke="var(--hairline-strong)" stroke-width="0.8" />
-      <g style="cursor:pointer" onclick="selectRadarDiv('${d.code}')">
-        <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-family="var(--font-mono)" font-size="11" font-weight="${isSel ? '700' : '600'}" fill="${isSel ? 'var(--accent-terracotta)' : 'var(--ink-primary)'}">${d.code} (${d.readinessScaledScore})</text>
+      <line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--ink)" stroke-width="1.15" />
+      <g style="cursor:pointer" onclick="selectDivision('${d.code}')">
+        <text x="${lx.toFixed(1)}" y="${(ly - 5).toFixed(1)}" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="var(--ink)">${d.code}</text>
+        <text x="${lx.toFixed(1)}" y="${(ly + 10).toFixed(1)}" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="500" fill="var(--ink)">${pct}%</text>
       </g>
     `;
   }).join("");
 
-  const userPts = divs.map((d, i) => pt(angles[i], d.readinessScaledScore).map(n => n.toFixed(1)).join(",")).join(" ");
-  const dotsSvg = divs.map((d, i) => {
-    const [px, py] = pt(angles[i], d.readinessScaledScore);
-    const pass = d.readinessScaledScore >= 550;
-    return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4.5" fill="${pass ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'}" stroke="var(--bg-surface)" stroke-width="1.5" style="cursor:pointer" onclick="selectRadarDiv('${d.code}')" />`;
-  }).join("");
+  const polyPts = divs.map((d, i) => {
+    const ratio = Math.max(0.25, Math.min(0.95, d.readinessScaledScore / 800));
+    return pt(angles[i], ratio).map(n => n.toFixed(1)).join(",");
+  }).join(" ");
 
   return `
-    <svg viewBox="0 0 400 340" style="width:100%;height:auto;display:block;">
-      ${ringsSvg}
-      ${axesSvg}
-      <polygon points="${userPts}" fill="var(--accent-cobalt-soft)" stroke="var(--accent-cobalt)" stroke-width="2.2" />
-      ${dotsSvg}
-      <line x1="16" y1="306" x2="384" y2="306" stroke="var(--hairline)" stroke-width="0.8" />
-      <g transform="translate(24, 326)" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-secondary)">
-        <line x1="0" y1="-4" x2="20" y2="-4" stroke="var(--accent-terracotta)" stroke-width="1.8" stroke-dasharray="4,2" />
-        <text x="26" y="0">NCARB 550 Cut Score Ring</text>
-        <rect x="205" y="-9" width="10" height="10" fill="var(--accent-cobalt-soft)" stroke="var(--accent-cobalt)" stroke-width="1.5" />
-        <text x="220" y="0">Your Scaled Readiness</text>
-      </g>
+    <svg viewBox="0 0 440 364" style="width:100%;max-height:385px;height:auto;display:block;margin:0 auto;">
+      ${sectorHatch}
+      <polygon points="${outerPts}" fill="none" stroke="var(--ink)" stroke-width="1.4" />
+      <polygon points="${midPts}" fill="none" stroke="var(--ink)" stroke-width="0.85" stroke-dasharray="4,3" />
+      ${spokesSvg}
+      <polygon points="${polyPts}" fill="rgba(41, 72, 184, 0.1)" stroke="var(--cobalt)" stroke-width="2.4" />
     </svg>
   `;
 }
 
-window.selectRadarDiv = function(code) {
-  state.radarFocus = code;
-  renderApp();
-};
+function buildFacadeCadSvg(plate) {
+  return `
+    <svg viewBox="0 0 490 205" style="width:100%;max-height:215px;height:auto;display:block;">
+      <defs>
+        <pattern id="cad-concrete" width="8" height="8" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="0.6" fill="var(--ink)" />
+          <circle cx="6" cy="5" r="0.5" fill="var(--ink)" />
+          <path d="M 4 1 L 5 2 L 3.5 2.5 Z" fill="none" stroke="var(--ink)" stroke-width="0.35" />
+        </pattern>
+      </defs>
 
-/* ==========================================================================
-   EVALUATE QUESTION & CLASSIFY AXP TASK
-   ========================================================================== */
-function evaluateItem(q, ans) {
-  if (ans === undefined || ans === null) return false;
-  if (q.type === "mc" || q.type === "cata") {
-    const a = Array.isArray(ans) ? [...ans].sort() : [ans].sort();
-    const c = [...(q.correctAnswer || [])].sort();
-    return a.length === c.length && a.every((v, idx) => v === c[idx]);
-  }
-  if (q.type === "fib") {
-    const num = parseFloat(String(ans).replace(/[^0-9.-]/g, ""));
-    if (isNaN(num)) return false;
-    return Math.abs(num - Number(q.correctAnswer)) <= Number(q.tolerance ?? 0.05);
-  }
-  if (q.type === "hotspot") {
-    const z = q.targetZone;
-    return ans.x >= z.xMin && ans.x <= z.xMax && ans.y >= z.yMin && ans.y <= z.yMax;
-  }
-  if (q.type === "drag") {
-    return Object.entries(q.correctMapping || {}).every(([k, v]) => ans[k] === v);
-  }
-  return false;
-}
+      <!-- Top Architectural Dimension String -->
+      <line x1="82" y1="22" x2="210" y2="22" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="88" y1="16" x2="88" y2="30" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="84" y1="26" x2="92" y2="18" stroke="var(--ink)" stroke-width="1" />
+      <line x1="146" y1="16" x2="146" y2="30" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="142" y1="26" x2="150" y2="18" stroke="var(--ink)" stroke-width="1" />
+      <line x1="182" y1="16" x2="182" y2="30" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="178" y1="26" x2="186" y2="18" stroke="var(--ink)" stroke-width="1" />
+      <line x1="204" y1="16" x2="204" y2="30" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="200" y1="26" x2="208" y2="18" stroke="var(--ink)" stroke-width="1" />
 
-function classifyWorkTask(description) {
-  const text = (description || "").toLowerCase();
-  const rules = [
-    {
-      code: "CE", name: "Construction & Evaluation",
-      keywords: ["rfi", "submittal", "shop drawing", "site visit", "punch list", "pay app", "g702", "g703", "change order", "g701", "ccd", "g714", "asi", "g710", "field report", "closeout", "substantial completion", "cylinder"],
-      competency: "CE-3: Review shop drawings, submittals, RFIs, and payment applications during construction administration",
-      synergy: "Directly reinforces ARE 5.0 CE Section 2 (Construction Observation) & Section 3 (Administrative Procedures)."
-    },
-    {
-      code: "PDD", name: "Project Development & Documentation",
-      keywords: ["wall section", "detail", "flashing", "spec", "masterformat", "csi", "cd", "construction document", "door schedule", "window schedule", "coordination", "clash", "vapor", "acoustical", "structural detail"],
-      competency: "PDD-1: Prepare construction documents, technical specifications (CSI 3-Part), and wall assembly details",
-      synergy: "Directly reinforces ARE 5.0 PDD Section 1 (Integration of Building Materials) & Section 2 (Construction Documentation)."
-    },
-    {
-      code: "PPD", name: "Project Planning & Design",
-      keywords: ["schematic", "massing", "hvac", "mechanical", "daylight", "solar", "structural system", "egress", "life safety", "occupancy", "fire rating", "ibc", "energy model", "acoustic"],
-      competency: "PPD-3: Perform schematic design alternatives, IBC life-safety egress sizing, and MEP/structural system selection",
-      synergy: "Directly reinforces ARE 5.0 PPD Section 3 (Building Systems) & Section 4 (Project Planning)."
-    },
-    {
-      code: "PA", name: "Programming & Analysis",
-      keywords: ["zoning", "setback", "far", "site analysis", "program", "adjacency", "bubble", "topography", "contour", "geotech", "soil", "wetland", "feasibility", "existing building"],
-      competency: "PA-2: Analyze site zoning constraints, FAR, topographic drainage contours, and client space programming",
-      synergy: "Directly reinforces ARE 5.0 PA Section 1 (Environmental & Contextual Conditions) & Section 3 (Programming)."
-    },
-    {
-      code: "PjM", name: "Project Management",
-      keywords: ["schedule", "critical path", "cpm", "b101", "a101", "a201", "c401", "consultant", "work plan", "fee budget", "qa/qc", "quality control", "client meeting", "scope"],
-      competency: "PjM-2: Manage project work plans, CPM schedules, AIA Owner/Consultant agreements, and QA/QC reviews",
-      synergy: "Directly reinforces ARE 5.0 PjM Section 2 (Project Work Planning) & Section 3 (Contracts)."
-    },
-    {
-      code: "PcM", name: "Practice Management",
-      keywords: ["multiplier", "overhead", "utilization", "marketing", "proposal", "rfp", "insurance", "llc", "llp", "corporation", "firm", "staffing", "hr", "ethics", "standard of care"],
-      competency: "PcM-2: Calculate firm financial metrics (Net Multiplier, Overhead Rate, Utilization) and evaluate business risk",
-      synergy: "Directly reinforces ARE 5.0 PcM Section 2 (Finances, Risk & Development) & Section 3 (Practice-Wide Delivery)."
-    }
-  ];
+      <text x="117" y="14" text-anchor="middle" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">${esc(plate.dims[0])}</text>
+      <text x="164" y="14" text-anchor="middle" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">${esc(plate.dims[1])}</text>
+      <text x="195" y="14" text-anchor="middle" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">${esc(plate.dims[2])}</text>
 
-  const scored = rules.map(r => {
-    let hits = 0;
-    r.keywords.forEach(k => { if (text.includes(k)) hits += 2; });
-    return { ...r, hits };
-  }).sort((a, b) => b.hits - a.hits);
+      <!-- Left Vertical Dimension -->
+      <line x1="68" y1="34" x2="68" y2="185" stroke="var(--ink)" stroke-width="0.85" />
+      <line x1="64" y1="38" x2="72" y2="30" stroke="var(--ink)" stroke-width="1" />
+      <line x1="64" y1="189" x2="72" y2="181" stroke="var(--ink)" stroke-width="1" />
+      <text x="58" y="110" text-anchor="middle" transform="rotate(-90 58 110)" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">2.1m</text>
 
-  const primary = scored[0].hits > 0 ? scored[0] : rules[0];
-  const secondary = scored[1];
-  return {
-    primary,
-    secondary,
-    confidence: primary.hits >= 4 ? "98% Match" : primary.hits >= 2 ? "92% Match" : "88% Match"
-  };
-}
+      <!-- Wall Layers -->
+      <rect x="88" y="34" width="58" height="151" fill="url(#cad-concrete)" stroke="var(--ink)" stroke-width="1.2" />
+      <rect x="146" y="34" width="36" height="151" fill="var(--vellum-hover)" stroke="var(--ink)" stroke-width="1" />
+      <path d="M 146 34 L 182 59 L 146 84 L 182 109 L 146 134 L 182 159 L 146 185" fill="none" stroke="var(--ink)" stroke-width="0.65" />
+      <path d="M 182 34 L 146 59 L 182 84 L 146 109 L 182 134 L 146 159 L 182 185" fill="none" stroke="var(--ink)" stroke-width="0.65" />
+      <rect x="182" y="34" width="10" height="151" fill="var(--vellum-light)" stroke="var(--ink)" stroke-width="0.85" />
+      <rect x="192" y="34" width="12" height="151" fill="rgba(41,72,184,0.12)" stroke="var(--ink)" stroke-width="1.15" />
 
-/* ==========================================================================
-   MASTER RENDER FUNCTION
-   ========================================================================== */
-function renderApp() {
-  if (!db) return;
-  const root = document.getElementById("app-root");
-  const totalAxp = db.axpData.areas.reduce((s, a) => s + a.totalLogged, 0);
-  const avgScaled = Math.round(db.divisions.reduce((s, d) => s + d.readinessScaledScore, 0) / db.divisions.length);
+      <rect x="104" y="132" width="90" height="8" fill="var(--vellum-tab)" stroke="var(--ink)" stroke-width="1.1" />
+      <rect x="184" y="122" width="22" height="26" fill="none" stroke="var(--ink)" stroke-width="1.4" />
 
-  root.innerHTML = `
-    <div class="monograph-shell">
-      <!-- Architectural Sheet Titleblock Header -->
-      <div class="titleblock-bar">
-        <div class="titleblock-meta">
-          <span><strong>PROJECT:</strong> NCARB ARE 5.0 &amp; AXP LICENSURE MONOGRAPH</span>
-          <span><strong>JURISDICTION:</strong> MIDWEST / CENTRAL (IL · MN · OH · TX · MI · WI)</span>
-          <span><strong>CUT SCORE:</strong> 550 / 800 SCALED</span>
-        </div>
-        <div class="titleblock-meta">
-          <span><strong>AXP RECORD:</strong> ${totalAxp.toLocaleString()} / 3,740 HRS (${((totalAxp / 3740) * 100).toFixed(1)}%)</span>
-          <span><strong>GOOGLE SHEET SYNC:</strong> <a href="${GOOGLE_SHEET_URL}" target="_blank" rel="noopener" style="color:var(--accent-verdigris);font-weight:700;text-decoration:underline;">LIVE CONNECTED ↗</a></span>
-        </div>
-      </div>
+      <!-- 5 Callout Leaders -->
+      <circle cx="136" cy="54" r="2" fill="var(--ink)" />
+      <line x1="136" y1="54" x2="250" y2="54" stroke="var(--ink)" stroke-width="0.85" />
+      <text x="256" y="57" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[0])}</text>
 
-      <!-- Two-Tier Sticky Studio Masthead -->
-      <header class="atelier-masthead">
-        <div class="masthead-top-row">
-          <div class="brand-lockup">
-            <div class="brand-monogram" aria-hidden="true">A</div>
-            <div class="brand-titles">
-              <h1>Atelier ARE 5.0 &amp; AXP Licensure Studio</h1>
-              <div class="brand-subtitle">NCARB · PPI2Pass · Amber Book · Black Spectacles · Walking the ARE · Hyperfine</div>
-            </div>
-          </div>
+      <circle cx="168" cy="78" r="2" fill="var(--ink)" />
+      <line x1="168" y1="78" x2="250" y2="78" stroke="var(--ink)" stroke-width="0.85" />
+      <text x="256" y="81" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[1])}</text>
 
-          <div class="masthead-actions">
-            <button id="btn-theme-toggle" class="btn-arch" onclick="toggleTheme()" title="Switch between Warm Vellum and Obsidian Studio Theme">
-              ${state.theme === 'light' ? '☾ Obsidian Blueprint' : '☀ Warm Vellum'}
-            </button>
-            <a href="${GOOGLE_SHEET_URL}" target="_blank" rel="noopener" class="btn-arch verdigris">
-              Google Sheet Ledger ↗
-            </a>
-          </div>
-        </div>
+      <circle cx="198" cy="102" r="2" fill="var(--ink)" />
+      <line x1="198" y1="102" x2="250" y2="102" stroke="var(--ink)" stroke-width="0.85" />
+      <text x="256" y="105" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[2])}</text>
 
-        <nav class="studio-nav" aria-label="Primary Workspace Navigation">
-          <button id="nav-tab-overview" class="studio-tab ${state.tab === 'overview' ? 'active' : ''}" onclick="switchTab('overview')">
-            <span class="tab-index">01</span> Command Monograph
-          </button>
-          <button id="nav-tab-simulator" class="studio-tab ${state.tab === 'simulator' ? 'active' : ''}" onclick="switchTab('simulator')">
-            <span class="tab-index">02</span> PSI Exam Simulator (${db.questions.length})
-          </button>
-          <button id="nav-tab-axp" class="studio-tab ${state.tab === 'axp' ? 'active' : ''}" onclick="switchTab('axp')">
-            <span class="tab-index">03</span> AXP Tracker &amp; Task AI
-          </button>
-          <button id="nav-tab-atlas" class="studio-tab ${state.tab === 'atlas' ? 'active' : ''}" onclick="switchTab('atlas')">
-            <span class="tab-index">04</span> Visual Atlas &amp; Coach
-          </button>
-          <button id="nav-tab-library" class="studio-tab ${state.tab === 'library' ? 'active' : ''}" onclick="switchTab('library')">
-            <span class="tab-index">05</span> Drive PDF Library (${db.driveResources.length})
-          </button>
-          <button id="nav-tab-stats" class="studio-tab ${state.tab === 'stats' ? 'active' : ''}" onclick="switchTab('stats')">
-            <span class="tab-index">06</span> Pass Rates &amp; Board News
-          </button>
-        </nav>
-      </header>
+      <circle cx="204" cy="126" r="2" fill="var(--ink)" />
+      <line x1="204" y1="126" x2="250" y2="126" stroke="var(--ink)" stroke-width="0.85" />
+      <text x="256" y="129" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[3])}</text>
 
-      <!-- Active Workspace View -->
-      <main id="workspace-main">
-        ${state.tab === 'overview' ? renderOverviewTab(totalAxp, avgScaled) : ''}
-        ${state.tab === 'simulator' ? renderSimulatorTab() : ''}
-        ${state.tab === 'axp' ? renderAxpTab(totalAxp) : ''}
-        ${state.tab === 'atlas' ? renderAtlasTab() : ''}
-        ${state.tab === 'library' ? renderLibraryTab() : ''}
-        ${state.tab === 'stats' ? renderStatsTab() : ''}
-      </main>
-    </div>
+      <circle cx="145" cy="136" r="2" fill="var(--ink)" />
+      <line x1="145" y1="136" x2="250" y2="150" stroke="var(--ink)" stroke-width="0.85" />
+      <text x="256" y="153" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[4])}</text>
+
+      <!-- Bottom-Right Scale Titleblock (Fits comfortably inside 256..475) -->
+      <text x="256" y="179" font-family="var(--font-condensed)" font-size="11.5" font-weight="700" fill="var(--ink)">${esc(plate.title)}</text>
+      <line x1="256" y1="183" x2="475" y2="183" stroke="var(--ink)" stroke-width="1.1" />
+      <text x="256" y="196" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">SCALE</text>
+      <text x="475" y="196" text-anchor="end" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">${esc(plate.scale)}</text>
+    </svg>
   `;
 }
 
 /* ==========================================================================
-   TAB 01: COMMAND MONOGRAPH (HERO + RADAR + 6 DIVISIONS)
+   VIEW 2: CALM PRACTICE EXAM SIMULATOR
    ========================================================================== */
-function renderOverviewTab(totalAxp, avgScaled) {
-  const focusDiv = db.divisions.find(d => d.code === state.radarFocus) || db.divisions[1];
-  const heroSrc = window.__HERO_B64__ || "assets/hero.jpg";
+function renderCalmExam(focusDiv) {
+  const q = state.examPool[state.examIdx % state.examPool.length] || db.questions[0];
+  const cs = q.caseStudyId ? db.caseStudies.find(c => c.id === q.caseStudyId) : null;
+  const ans = state.examAnswers[q.id];
+  const rev = Boolean(state.examRevealed[q.id]);
+  const struck = new Set(state.examStrikes[q.id] || []);
 
   return `
-    <!-- Editorial Hero Monograph -->
-    <section class="hero-monograph">
-      <div class="hero-editorial-copy">
+    <div class="exam-split">
+      <section class="exam-left-pane">
         <div>
-          <div class="hero-kicker">Architectural Registration Examination · Edition 5.0 + Legacy 4.0 Synthesis</div>
-          <h2 class="hero-headline">Precision Preparation Across All Six NCARB Divisions &amp; 3,740 AXP Hours.</h2>
-          <p class="hero-lead">
-            Synthesizing your 13 Google Drive study manuals (<em>NCARB Guidelines, PPI2Pass Review Manuals, Walking the ARE 2.1, Hyperfine PcM/PjM, RMS Study Guide, and BYoung Matrix</em>) into an interactive PSI testing workbench, visual building-science atlas, and live Google Sheet AXP ledger.
-          </p>
-        </div>
-
-        <div class="hero-kpi-strip">
-          <div class="kpi-cell">
-            <div class="kpi-label">Composite Scaled</div>
-            <div class="kpi-val">${avgScaled}<span style="font-size:1rem;color:var(--ink-muted)">/800</span></div>
-            <div class="kpi-sub" style="color:var(--accent-verdigris)">4 of 6 Divisions ≥ 550 Cut</div>
-          </div>
-          <div class="kpi-cell">
-            <div class="kpi-label">AXP Experience</div>
-            <div class="kpi-val">${totalAxp.toLocaleString()}<span style="font-size:1rem;color:var(--ink-muted)">h</span></div>
-            <div class="kpi-sub" style="color:var(--accent-cobalt)">${(3740 - totalAxp).toFixed(0)} hrs to 3,740 Req</div>
-          </div>
-          <div class="kpi-cell">
-            <div class="kpi-label">Simulator Bank</div>
-            <div class="kpi-val">${db.questions.length}<span style="font-size:1rem;color:var(--ink-muted)"> Items</span></div>
-            <div class="kpi-sub" style="color:var(--accent-terracotta)">+ 6 Multi-Doc Case Studies</div>
-          </div>
-          <div class="kpi-cell">
-            <div class="kpi-label">National Pass Avg</div>
-            <div class="kpi-val">55%</div>
-            <div class="kpi-sub" style="color:var(--ink-secondary)">Midwest Avg: 57.5%</div>
-          </div>
-        </div>
-
-        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
-          <button class="btn-arch primary" onclick="switchTab('simulator')">Launch Full PSI Exam Simulator →</button>
-          <button class="btn-arch cobalt" onclick="switchTab('atlas')">Explore Interactive Visual Concept Atlas</button>
-          <button class="btn-arch" onclick="switchTab('axp')">Classify Work Tasks for AXP Hours</button>
-        </div>
-      </div>
-
-      <div class="hero-visual-frame">
-        <img src="${heroSrc}" alt="Architectural studio table with structural wall section blueprints, brass scale ruler, concrete and oak material samples, and basswood pavilion model" />
-        <div class="hero-caption-plate">
-          <span>FIG 1.0 — ATELIER STUDIO WORKBENCH (PA · PPD · PDD TECHNICAL SYNTHESIS)</span>
-          <span>SCALE: 1/4" = 1'-0"</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 12-Col Analytics Row: 6-Axis Radar + Selected Division Diagnostic -->
-    <div class="sheet-grid-12">
-      <div class="col-6 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">DIAG-01</span>
-            <h3 class="sheet-title">Six-Division Scaled Competency Radar</h3>
-          </div>
-          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">Click any vertex to inspect</span>
-        </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;justify-content:space-between;gap:1.15rem;">
-          ${buildCompetencyRadarSvg()}
-
-          <!-- Scaled Score Distribution Bar Matrix -->
-          <div style="border-top:1px solid var(--hairline);padding-top:1rem;">
-            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);margin-bottom:0.65rem;">
-              <span>SCALED SCORE BENCHMARK (100–800 SCALE)</span>
-              <span style="color:var(--accent-terracotta);font-weight:700;">550 PASS CUT LINE (68.7%)</span>
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.75rem;border-bottom:var(--rule);padding-bottom:0.75rem;margin-bottom:1.15rem;">
+            <div style="font-family:var(--font-condensed);font-size:1.1rem;font-weight:700;letter-spacing:0.03em;">
+              ${esc(q.division)} PRACTICE EXAM · ITEM ${state.examIdx + 1} OF ${state.examPool.length}
             </div>
-            <div style="display:flex;flex-direction:column;gap:0.55rem;">
-              ${db.divisions.map(d => {
-                const pct = Math.round((d.readinessScaledScore / 800) * 100);
-                const pass = d.readinessScaledScore >= 550;
-                return `
-                  <div style="display:grid;grid-template-columns:52px 1fr 78px;align-items:center;gap:0.65rem;font-family:var(--font-mono);font-size:0.75rem;cursor:pointer;" onclick="selectRadarDiv('${d.code}')">
-                    <strong>${d.code}</strong>
-                    <div style="position:relative;height:9px;background:var(--bg-inset);border:1px solid var(--hairline);">
-                      <div style="width:${pct}%;height:100%;background:${pass ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'};"></div>
-                      <div style="position:absolute;left:68.75%;top:-2px;bottom:-2px;width:2px;background:var(--ink-primary);" title="550 Cut Score"></div>
-                    </div>
-                    <span style="text-align:right;font-weight:700;color:${pass ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'}">${d.readinessScaledScore}/800</span>
-                  </div>
-                `;
-              }).join("")}
-            </div>
+            <select class="swiss-select" style="width:auto;padding:0.25rem 0.6rem;font-family:var(--font-mono);font-size:0.74rem;" onchange="state.examLegacy=this.value;filterExamPool();render()">
+              <option value="ALL" ${state.examLegacy === 'ALL' ? 'selected' : ''}>${focusDiv.code} Division Items (${db.questions.filter(x => x.division === focusDiv.code).length})</option>
+              <option value="PPP" ${state.examLegacy === 'PPP' ? 'selected' : ''}>Legacy ARE 4.0 PPP Mock Exam</option>
+              <option value="CDS" ${state.examLegacy === 'CDS' ? 'selected' : ''}>Legacy ARE 4.0 CDS Mock Exam</option>
+            </select>
           </div>
 
-          <!-- Provider Synthesis Footnote -->
-          <div style="background:var(--bg-elevated);border:1px solid var(--hairline);padding:0.85rem 1rem;font-size:0.78rem;">
-            <div style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--accent-cobalt);margin-bottom:0.35rem;">
-              MULTI-PROVIDER STUDY METHODOLOGY MATRIX
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.45rem;color:var(--ink-secondary);font-size:0.76rem;">
-              ${(db.providerComparison || []).slice(0, 4).map(p => `
-                <div><strong style="color:var(--ink-primary)">${esc(p.provider)}:</strong> ${esc(p.bestFor)}</div>
-              `).join("")}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-6 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">${focusDiv.code}</span>
-            <h3 class="sheet-title">${esc(focusDiv.name)} — Deep Diagnostic</h3>
-          </div>
-          <button class="btn-arch primary" onclick="launchDivisionSim('${focusDiv.code}')">Practice ${focusDiv.code} Items →</button>
-        </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:0.9rem;">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;background:var(--bg-elevated);padding:0.85rem;border:1px solid var(--hairline);font-family:var(--font-mono);font-size:0.78rem;">
-            <div><div style="color:var(--ink-muted)">Scaled Score</div><div style="font-size:1.1rem;font-weight:700;color:${focusDiv.readinessScaledScore >= 550 ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'}">${focusDiv.readinessScaledScore} / 800</div></div>
-            <div><div style="color:var(--ink-muted)">Exam Format</div><div style="font-weight:700">${focusDiv.totalItems} Qs · ${focusDiv.testDurationDisplay}</div></div>
-            <div><div style="color:var(--ink-muted)">Nat'l / 1st Try</div><div style="font-weight:700">${focusDiv.passRates['2025']}% / ${focusDiv.passRates.firstAttempt}%</div></div>
-            <div><div style="color:var(--ink-muted)">AXP Area Req</div><div style="font-weight:700">${focusDiv.axpRequiredHours} hrs</div></div>
+          <div style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);margin-bottom:0.55rem;">
+            ${esc(q.section)} · Objective ${esc(q.objective)} · Source: ${esc(q.source)}
           </div>
 
-          <div style="font-size:0.82rem;font-family:var(--font-mono);color:var(--ink-secondary);">
-            <strong>Legacy ARE 4.0 Crosswalk:</strong> ${esc(focusDiv.legacyAre4.join(" + "))}
+          <div style="font-size:1.02rem;font-weight:500;line-height:1.6;margin-bottom:1.25rem;">
+            ${esc(q.stem)}
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:0.6rem;">
-            ${focusDiv.sections.map(sec => `
-              <div style="border:1px solid var(--hairline);padding:0.75rem 0.95rem;background:var(--bg-canvas);">
-                <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.78rem;font-weight:700;">
-                  <span>${esc(sec.id)} — ${esc(sec.title)}</span>
-                  <span style="color:var(--accent-cobalt)">${esc(sec.weight)} (${esc(sec.expectedItems || sec.items || '12-18')} items)</span>
-                </div>
-                <ul style="margin:0.4rem 0 0;padding-left:1.15rem;font-size:0.8rem;color:var(--ink-secondary);line-height:1.45;">
-                  ${sec.objectives.map(o => {
-                    const label = typeof o === 'object' ? `${o.code}: ${o.text} [${o.level}]` : String(o);
-                    return `<li>${esc(label)}</li>`;
-                  }).join("")}
-                </ul>
+          ${renderExamInputControl(q, ans, rev, struck)}
+
+          ${rev ? `
+            <div style="margin-top:1.1rem;padding:1rem;background:var(--vellum-light);border:var(--rule);border-left:4px solid var(--verdigris);font-size:0.86rem;line-height:1.55;">
+              <div style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--verdigris);margin-bottom:0.3rem;">
+                NCARB EXPLANATION &amp; CODE CITATION
               </div>
+              <div>${esc(q.explanation)}</div>
+              <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);margin-top:0.4rem;">
+                Reference: ${esc(q.reference)}
+              </div>
+            </div>
+          ` : ""}
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--rule);padding-top:0.9rem;">
+          <button class="swiss-btn" onclick="state.examIdx=(state.examIdx-1+state.examPool.length)%state.examPool.length;render()">← PREVIOUS</button>
+          <div style="display:flex;gap:0.55rem;">
+            <button class="swiss-btn cobalt" onclick="state.examRevealed['${q.id}']=true;render()">CHECK ANSWER</button>
+            <button class="swiss-btn terracotta" onclick="state.examIdx=(state.examIdx+1)%state.examPool.length;render()">NEXT ITEM →</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="exam-right-pane">
+        ${cs ? `
+          <div class="pane-heading">
+            <span>CASE STUDY EXHIBIT · ${esc(cs.title)}</span>
+          </div>
+          <p style="margin:0;font-size:0.82rem;color:var(--ink-muted);">${esc(cs.scenario)}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+            ${cs.resources.map((r, i) => `
+              <button class="swiss-btn ${state.examCaseTab === i ? 'terracotta' : ''}" style="font-size:0.74rem;padding:0.3rem 0.65rem;" onclick="state.examCaseTab=${i};render()">
+                ${esc(r.title)}
+              </button>
             `).join("")}
           </div>
-        </div>
-      </div>
-    </div>
+          <div style="border:var(--rule);background:var(--vellum);padding:1rem;font-family:var(--font-mono);font-size:0.76rem;line-height:1.6;white-space:pre-wrap;">${esc((cs.resources[state.examCaseTab] || cs.resources[0]).content)}</div>
+        ` : `
+          <div class="pane-heading">
+            <span>QUICK FORMULA &amp; CODE REFERENCE</span>
+            <span>${focusDiv.code}</span>
+          </div>
+          <div style="border:var(--rule);background:var(--vellum);padding:1rem;font-family:var(--font-mono);font-size:0.76rem;line-height:1.65;">
+            <div><strong>Net Multiplier</strong> = Net Operating Revenue ÷ Direct Labor</div>
+            <div><strong>Break-Even Rate</strong> = 1.0 + (Indirect Overhead ÷ Direct Labor)</div>
+            <div><strong>Max GFA (Zoning)</strong> = FAR × Total Lot Area</div>
+            <div><strong>AIA G710 (ASI)</strong> = Minor change, NO cost/time impact</div>
+            <div><strong>AIA G714 (CCD)</strong> = Owner + Architect sign when cost disputed</div>
+            <div><strong>AIA G701 (CO)</strong> = Owner + Architect + Contractor sign</div>
+          </div>
 
-    <!-- All 6 ARE 5.0 Divisions Matrix -->
-    <div style="margin-top:2rem;">
-      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:1rem;border-bottom:1px solid var(--hairline-strong);padding-bottom:0.6rem;">
-        <h3 style="margin:0;font-family:var(--font-display);font-size:1.65rem;font-weight:400;">All Six ARE 5.0 Divisions — Specifications, Pass Rates &amp; Study Progress</h3>
-        <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">2026 NCARB Examination Fee: $263 / Division ($1,578 Total)</span>
-      </div>
-
-      <div class="divisions-matrix">
-        ${db.divisions.map(d => {
-          const pass = d.readinessScaledScore >= 550;
-          const pct = Math.min(100, Math.round((d.loggedStudyHours / d.recommendedStudyHours) * 100));
-          return `
-            <article class="division-plate">
-              <div>
-                <div class="division-plate-top">
-                  <div class="division-badge-row">
-                    <span class="div-code-tag">DIV 0${d.number} · ${d.code}</span>
-                    <span class="status-tag ${pass ? 'status-pass' : 'status-focus'}">
-                      ${d.readinessScaledScore} / 800 (${pass ? 'PASS READY' : 'NEEDS FOCUS'})
-                    </span>
-                  </div>
-                  <h4 class="division-name">${esc(d.name)}</h4>
-                  <p class="division-desc">${esc(d.description)}</p>
-                </div>
-
-                <div class="division-specs-strip">
-                  <div><div class="spec-lbl">Items</div><div class="spec-val">${d.totalItems}</div></div>
-                  <div><div class="spec-lbl">Seat Time</div><div class="spec-val">${d.testDurationDisplay}</div></div>
-                  <div><div class="spec-lbl">Nat'l Pass</div><div class="spec-val">${d.passRates['2025']}%</div></div>
-                  <div><div class="spec-lbl">Midwest</div><div class="spec-val">${d.passRates.midwestAvg}%</div></div>
-                </div>
-              </div>
-
-              <div class="division-plate-foot">
-                <div>
-                  <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;margin-bottom:0.35rem;">
-                    <span>Study Logged: <strong>${d.loggedStudyHours} / ${d.recommendedStudyHours} hrs</strong> (${pct}%)</span>
-                    <span>AXP Req: <strong>${d.axpRequiredHours}h</strong></span>
-                  </div>
-                  <div class="progress-track">
-                    <div class="progress-fill" style="width:${pct}%;background:${pass ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'}"></div>
-                  </div>
-                </div>
-
-                <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">
-                  ARE 4.0 Legacy: <strong style="color:var(--ink-secondary)">${esc(d.legacyAre4.join(" · "))}</strong>
-                </div>
-
-                <div style="display:flex;gap:0.5rem;">
-                  <button class="btn-arch primary" style="flex:1;justify-content:center;" onclick="launchDivisionSim('${d.code}')">
-                    Launch ${d.code} Exam →
-                  </button>
-                  <button class="btn-arch" onclick="selectRadarDiv('${d.code}');window.scrollTo({top:420,behavior:'smooth'})">
-                    Inspect
-                  </button>
-                </div>
-              </div>
-            </article>
-          `;
-        }).join("")}
-      </div>
+          <div class="pane-heading" style="margin-top:0.4rem;">
+            <span>ITEM NAVIGATOR (${state.examPool.length} ITEMS)</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+            ${state.examPool.map((it, idx) => {
+              const isCur = idx === state.examIdx;
+              const hasA = state.examAnswers[it.id] !== undefined;
+              return `<button class="swiss-btn ${isCur ? 'terracotta' : ''}" style="width:32px;height:30px;padding:0;justify-content:center;font-family:var(--font-mono);font-size:0.74rem;${hasA && !isCur ? 'background:var(--vellum-tab);' : ''}" onclick="state.examIdx=${idx};render()">${idx + 1}</button>`;
+            }).join("")}
+          </div>
+        `}
+      </aside>
     </div>
   `;
 }
 
-/* ==========================================================================
-   TAB 02: PSI / NCARB PRACTICE EXAM SIMULATOR
-   ========================================================================== */
-function renderSimulatorTab() {
-  const q = state.simItems[state.simIdx] || db.questions[0];
-  const cs = q.caseStudyId ? db.caseStudies.find(c => c.id === q.caseStudyId) : null;
-  const ans = state.simAnswers[q.id];
-  const rev = Boolean(state.simRevealed[q.id]);
-  const flagged = Boolean(state.simFlags[q.id]);
-  const isOk = rev ? evaluateItem(q, ans) : false;
-
-  return `
-    <!-- Filter & Mode Control Bar -->
-    <div class="arch-sheet" style="margin-top:1.25rem;padding:0.9rem 1.25rem;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.65rem;">
-        <select id="sim-flt-div" class="arch-select" style="width:auto;" onchange="applySimFilters()">
-          <option value="ALL" ${state.simDivision === 'ALL' ? 'selected' : ''}>All 6 ARE 5.0 Divisions (${db.questions.length} Items)</option>
-          ${db.divisions.map(d => `<option value="${d.code}" ${state.simDivision === d.code ? 'selected' : ''}>${d.code} — ${esc(d.name)}</option>`).join("")}
-        </select>
-
-        <select id="sim-flt-leg" class="arch-select" style="width:auto;" onchange="applySimFilters()">
-          <option value="ALL" ${state.simLegacy === 'ALL' ? 'selected' : ''}>ARE 5.0 + Legacy ARE 4.0 Mock Exams</option>
-          <option value="PPP" ${state.simLegacy === 'PPP' ? 'selected' : ''}>Legacy ARE 4.0 PPP (Programming, Planning &amp; Practice)</option>
-          <option value="CDS" ${state.simLegacy === 'CDS' ? 'selected' : ''}>Legacy ARE 4.0 CDS (Construction Documents &amp; Services)</option>
-          <option value="SPD" ${state.simLegacy === 'SPD' ? 'selected' : ''}>Legacy ARE 4.0 SPD (Site Planning &amp; Design)</option>
-          <option value="BDCS" ${state.simLegacy === 'BDCS' ? 'selected' : ''}>Legacy ARE 4.0 BDCS (Building Design &amp; Construction Systems)</option>
-        </select>
-
-        <select id="sim-flt-type" class="arch-select" style="width:auto;" onchange="applySimFilters()">
-          <option value="ALL" ${state.simType === 'ALL' ? 'selected' : ''}>All 5 NCARB Item Types</option>
-          <option value="mc" ${state.simType === 'mc' ? 'selected' : ''}>Multiple Choice (MC)</option>
-          <option value="cata" ${state.simType === 'cata' ? 'selected' : ''}>Check-All-That-Apply (CATA)</option>
-          <option value="fib" ${state.simType === 'fib' ? 'selected' : ''}>Quantitative Fill-in-the-Blank (FIB)</option>
-          <option value="hotspot" ${state.simType === 'hotspot' ? 'selected' : ''}>Interactive CAD Blueprint Hotspot</option>
-          <option value="drag" ${state.simType === 'drag' ? 'selected' : ''}>Drag-and-Place Matching</option>
-        </select>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:0.6rem;">
-        <button class="btn-arch verdigris" onclick="scoreExamSession()">Grade Exam &amp; Generate Score Report</button>
-      </div>
-    </div>
-
-    ${state.simReport ? `
-      <div class="arch-sheet" style="margin-top:1.25rem;border:2px solid ${state.simReport.passed ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'};padding:1.25rem;">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
-          <div>
-            <div style="font-family:var(--font-mono);font-size:0.78rem;font-weight:700;color:${state.simReport.passed ? 'var(--accent-verdigris)' : 'var(--accent-terracotta)'}">
-              NCARB DIAGNOSTIC SCORE REPORT · ${state.simReport.passed ? 'PASSING PERFORMANCE (≥ 550 CUT SCORE)' : 'BELOW PASSING THRESHOLD (< 550 CUT SCORE)'}
-            </div>
-            <h3 style="margin:0.25rem 0 0;font-family:var(--font-display);font-size:1.75rem;font-weight:400;">
-              Scaled Score: <strong>${state.simReport.scaledScore} / 800</strong> (${state.simReport.correct} of ${state.simReport.total} Correct · ${state.simReport.accuracy}%)
-            </h3>
-          </div>
-          <button class="btn-arch" onclick="state.simReport=null;renderApp()">Dismiss Score Report ✕</button>
-        </div>
-      </div>
-    ` : ''}
-
-    <!-- Authentic PSI Testing Frame -->
-    <div class="psi-frame">
-      <div class="psi-top-chrome">
-        <div style="display:flex;align-items:center;gap:0.85rem;">
-          <span style="background:var(--accent-terracotta);color:#fff;padding:0.2rem 0.55rem;font-weight:700;">NCARB / PSI EXAM ENGINE</span>
-          <span>DIVISION: <strong>${esc(q.division)}</strong> · ${esc(q.section)} (Obj ${esc(q.objective)})</span>
-          ${q.legacyExam ? `<span style="background:rgba(56,189,248,0.2);color:#7dd3fc;padding:0.15rem 0.5rem;">ARE 4.0 ${esc(q.legacyExam)}</span>` : ''}
-        </div>
-
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <span>ITEM <strong>${state.simIdx + 1}</strong> OF <strong>${state.simItems.length}</strong></span>
-          <span>⏱ <strong id="psi-live-clock">${formatTimer(state.simSeconds)}</strong></span>
-        </div>
-      </div>
-
-      <div class="psi-sub-chrome">
-        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
-          <button class="psi-tool-btn ${flagged ? 'active-flag' : ''}" onclick="toggleFlag('${q.id}')">
-            ⚑ ${flagged ? 'Flagged for Review' : 'Flag Item'}
-          </button>
-          <button class="psi-tool-btn" onclick="openCalculatorModal()">🖩 NCARB Calculator &amp; Formulas</button>
-          <button class="psi-tool-btn" onclick="openWhiteboardModal()">✎ Digital Canvas Scratchpad</button>
-          <button class="psi-tool-btn" onclick="openReferenceModal()">📖 AIA / IBC Quick Reference</button>
-        </div>
-        <div>SOURCE: ${esc(q.source)} · DIFFICULTY: ${esc(q.difficulty || 'Medium')}</div>
-      </div>
-
-      <div class="psi-workbench ${cs ? '' : 'single-col'}">
-        <!-- Left Question Column -->
-        <div class="psi-question-pane">
-          <div style="display:flex;flex-direction:column;gap:1.25rem;">
-            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">
-              <span>ITEM ID: ${esc(q.id)} (${esc(q.type.toUpperCase())})</span>
-              <span>CLICK 'STRIKE' TO CROSS OUT DISTRACTOR OPTIONS</span>
-            </div>
-
-            <div class="question-stem">${esc(q.stem)}</div>
-
-            ${renderQuestionInteractiveBody(q, ans, rev)}
-
-            ${rev ? `
-              <div style="padding:1.15rem;background:var(--bg-elevated);border-left:4px solid ${isOk ? 'var(--accent-verdigris)' : 'var(--accent-crimson)'};font-size:0.88rem;">
-                <div style="font-family:var(--font-mono);font-size:0.78rem;font-weight:700;color:${isOk ? 'var(--accent-verdigris)' : 'var(--accent-crimson)'};margin-bottom:0.4rem;">
-                  ${isOk ? '✓ CORRECT (+1 RAW SCORE — MEETS NCARB COMPETENCY STANDARD)' : '✕ INCORRECT (0 POINTS — REVIEW ARCHITECTURAL RATIONALE)'}
-                </div>
-                <div style="line-height:1.6;color:var(--ink-primary);">${esc(q.explanation)}</div>
-                <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);margin-top:0.5rem;">
-                  Primary Study Reference: <strong>${esc(q.reference)}</strong>
-                </div>
-              </div>
-            ` : ''}
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1rem;border-top:1px solid var(--hairline);">
-            <button class="btn-arch" onclick="stepSimItem(-1)" ${state.simIdx === 0 ? 'disabled' : ''}>← Previous Item</button>
-            <div style="display:flex;gap:0.6rem;">
-              <button class="btn-arch cobalt" onclick="revealCurrentItem('${q.id}')">Check Answer &amp; Rationale</button>
-              <button class="btn-arch primary" onclick="stepSimItem(1)">Next Item →</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Case Study Exhibit Drawer -->
-        ${cs ? `
-          <div class="psi-case-pane">
-            <div style="padding:0.9rem 1.25rem;background:var(--bg-surface);border-bottom:1px solid var(--hairline-strong);">
-              <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-terracotta);font-weight:700;">
-                CASE STUDY EXHIBIT BINDER · ${esc(cs.division)}
-              </div>
-              <h4 style="margin:0.2rem 0;font-family:var(--font-display);font-size:1.3rem;font-weight:400;">${esc(cs.title)}</h4>
-              <p style="margin:0;font-size:0.8rem;color:var(--ink-secondary);">${esc(cs.scenario)}</p>
-            </div>
-
-            <div style="display:flex;flex-wrap:wrap;gap:0.35rem;padding:0.65rem 1.25rem;background:var(--bg-inset);border-bottom:1px solid var(--hairline);">
-              ${cs.resources.map((r, idx) => `
-                <button class="btn-arch ${state.simCaseTab === idx ? 'primary' : ''}" style="padding:0.35rem 0.7rem;font-size:0.75rem;" onclick="state.simCaseTab=${idx};renderApp()">
-                  📄 ${esc(r.title)}
-                </button>
-              `).join("")}
-            </div>
-
-            <div style="padding:1.25rem;flex:1;">
-              ${renderFormattedCaseExhibit(cs.resources[state.simCaseTab] || cs.resources[0], cs)}
-            </div>
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- Bottom Item Navigator Ribbon -->
-      <div class="item-ribbon">
-        <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);margin-right:0.5rem;">ITEM NAVIGATOR:</span>
-        ${state.simItems.map((it, idx) => {
-          const hasAns = state.simAnswers[it.id] !== undefined;
-          const isCur = idx === state.simIdx;
-          const isFlg = Boolean(state.simFlags[it.id]);
-          return `<button class="nav-num-btn ${isCur ? 'current' : hasAns ? 'answered' : ''} ${isFlg ? 'flagged' : ''}" onclick="state.simIdx=${idx};state.simCaseTab=0;renderApp()">${idx + 1}</button>`;
-        }).join("")}
-      </div>
-    </div>
-  `;
-}
-
-function renderFormattedCaseExhibit(res, cs) {
-  const lines = String(res.content || "").split("\n");
-  return `
-    <div style="background:var(--bg-surface);border:1px solid var(--hairline-strong);box-shadow:var(--shadow-sheet);">
-      <div style="padding:0.55rem 0.9rem;background:var(--bg-elevated);border-bottom:1px solid var(--hairline-strong);display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;">
-        <span><strong>DOCUMENT:</strong> ${esc(res.title.toUpperCase())}</span>
-        <span><strong>SHEET:</strong> ${esc(cs.id.toUpperCase())}-0${state.simCaseTab + 1}</span>
-      </div>
-      <div style="padding:1rem;font-family:var(--font-mono);font-size:0.78rem;line-height:1.65;">
-        ${lines.map(line => {
-          const isBullet = line.trim().startsWith("•") || line.trim().startsWith("-");
-          const parts = line.split(":");
-          if (parts.length >= 2 && parts[0].length < 42) {
-            return `<div style="padding:0.3rem 0;border-bottom:1px dashed var(--hairline);"><strong style="color:var(--accent-cobalt)">${esc(parts[0])}:</strong> ${esc(parts.slice(1).join(":"))}</div>`;
-          }
-          return `<div style="padding:0.25rem 0;${isBullet ? 'color:var(--ink-primary);font-weight:500;' : ''}">${esc(line)}</div>`;
-        }).join("")}
-      </div>
-    </div>
-  `;
-}
-
-function renderQuestionInteractiveBody(q, ans, rev) {
+function renderExamInputControl(q, ans, rev, struck) {
   if (q.type === "mc" || q.type === "cata") {
     const sel = new Set(Array.isArray(ans) ? ans : ans ? [ans] : []);
     const corr = new Set(q.correctAnswer || []);
-    const struck = new Set(state.simStrikes[q.id] || []);
     return `
       <div>
-        ${q.type === "cata" ? `<div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-terracotta);font-weight:700;margin-bottom:0.5rem;">CHECK ALL THAT APPLY — NO PARTIAL CREDIT PER NCARB SCORING RULES</div>` : ''}
         ${q.options.map(o => {
           const isS = sel.has(o.id);
           const isC = corr.has(o.id);
@@ -728,12 +590,12 @@ function renderQuestionInteractiveBody(q, ans, rev) {
             else if (isS && !isC) cls = "wrong";
           }
           return `
-            <div class="option-row">
-              <button class="option-card-btn ${cls} ${isSt ? 'struck' : ''}" onclick="selectSimOption('${q.id}','${o.id}','${q.type}')">
-                <span class="opt-key">${esc(o.id)}</span>
+            <div class="swiss-opt-row">
+              <button class="swiss-opt-btn ${cls} ${isSt ? 'struck' : ''}" onclick="pickExamOption('${q.id}','${o.id}','${q.type}')">
+                <strong style="font-family:var(--font-mono);">${esc(o.id)}.</strong>
                 <span>${esc(o.text)}</span>
               </button>
-              <button class="strike-btn" onclick="toggleSimStrike('${q.id}','${o.id}')" title="Cross out distractor">Strike</button>
+              <button class="swiss-btn" style="font-size:0.7rem;padding:0 0.6rem;" onclick="strikeExamOption('${q.id}','${o.id}')">STRIKE</button>
             </div>
           `;
         }).join("")}
@@ -743,15 +605,10 @@ function renderQuestionInteractiveBody(q, ans, rev) {
 
   if (q.type === "fib") {
     return `
-      <div style="background:var(--bg-elevated);border:1px solid var(--hairline-strong);padding:1.25rem;max-width:440px;">
-        <label style="display:block;font-family:var(--font-mono);font-size:0.75rem;text-transform:uppercase;color:var(--ink-muted);margin-bottom:0.5rem;">
-          QUANTITATIVE NUMERICAL ENTRY (${esc(q.unit)}):
-        </label>
-        <div style="display:flex;align-items:center;gap:0.65rem;">
-          <input type="text" class="arch-input" style="font-family:var(--font-mono);font-size:1rem;font-weight:700;" value="${esc(ans ?? '')}" oninput="state.simAnswers['${q.id}']=this.value" placeholder="Enter calculated value..." />
-          <span style="font-family:var(--font-mono);font-size:0.82rem;white-space:nowrap;">${esc(q.unit)}</span>
-        </div>
-        ${rev ? `<div style="font-family:var(--font-mono);font-size:0.8rem;color:var(--accent-verdigris);font-weight:700;margin-top:0.55rem;">Accepted NCARB Value: ${esc(q.correctAnswer)} (±${esc(q.tolerance)})</div>` : ''}
+      <div style="max-width:360px;border:var(--rule);padding:0.9rem;background:var(--vellum-light);">
+        <label style="font-family:var(--font-mono);font-size:0.74rem;display:block;margin-bottom:0.35rem;">ENTER NUMERICAL ANSWER (${esc(q.unit)}):</label>
+        <input type="text" class="swiss-input" style="font-family:var(--font-mono);font-size:0.95rem;font-weight:700;" value="${esc(ans ?? '')}" oninput="state.examAnswers['${q.id}']=this.value" />
+        ${rev ? `<div style="margin-top:0.4rem;font-family:var(--font-mono);font-size:0.76rem;color:var(--verdigris);font-weight:700;">Accepted Answer: ${esc(q.correctAnswer)}</div>` : ""}
       </div>
     `;
   }
@@ -761,12 +618,18 @@ function renderQuestionInteractiveBody(q, ans, rev) {
     const z = q.targetZone;
     return `
       <div>
-        <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-secondary);margin-bottom:0.5rem;">
-          <span>CLICK DIRECTLY ON THE ARCHITECTURAL CAD DETAIL BELOW TO PLACE TARGET PIN:</span>
-          <span>${pin ? `PIN PLACED AT (${pin.x}, ${pin.y})` : 'NO PIN PLACED YET'}</span>
-        </div>
-        <div style="border:2px solid var(--ink-primary);background:#fcfaf5;cursor:crosshair;max-width:680px;" onclick="placeHotspotPin(event,'${q.id}')">
-          ${q.diagramType === "site-grading-hotspot" ? buildCadSiteGradingSvg(pin, rev, z) : buildCadWallSectionSvg(pin, rev, z)}
+        <div style="font-family:var(--font-mono);font-size:0.74rem;margin-bottom:0.35rem;">CLICK ON THE ARCHITECTURAL DRAWING TO PLACE PIN:</div>
+        <div style="border:var(--rule);background:#fff;cursor:crosshair;max-width:520px;" onclick="clickBlueprintPin(event,'${q.id}')">
+          <svg viewBox="0 0 100 70" style="width:100%;height:auto;display:block;">
+            <rect x="8" y="12" width="84" height="48" fill="#f5f2eb" stroke="#181816" stroke-width="0.6" />
+            <rect x="18" y="14" width="24" height="14" fill="#d6d0c4" stroke="#181816" stroke-width="0.8" />
+            <text x="20" y="22" font-size="2.6" font-family="monospace">GARAGE 102.5'</text>
+            <path d="M 8 34 Q 52 50 92 32" fill="none" stroke="#c85a32" stroke-width="0.9" />
+            <rect x="44" y="42" width="26" height="15" fill="#e5e0d5" stroke="#181816" stroke-width="0.9" />
+            <text x="46" y="51" font-size="2.6" font-family="monospace">ADDITION 90.0'</text>
+            ${rev ? `<rect x="${z.xMin}" y="${z.yMin}" width="${z.xMax - z.xMin}" height="${z.yMax - z.yMin}" fill="rgba(29,107,72,0.25)" stroke="#1d6b48" stroke-width="0.9" />` : ""}
+            ${pin ? `<circle cx="${pin.x}" cy="${pin.y}" r="2.6" fill="#c85a32" stroke="#fff" stroke-width="0.6" />` : ""}
+          </svg>
         </div>
       </div>
     `;
@@ -775,12 +638,12 @@ function renderQuestionInteractiveBody(q, ans, rev) {
   if (q.type === "drag") {
     const cur = ans && typeof ans === "object" ? ans : {};
     return `
-      <div style="display:flex;flex-direction:column;gap:0.65rem;">
+      <div style="display:flex;flex-direction:column;gap:0.55rem;">
         ${q.targets.map(t => `
-          <div style="background:var(--bg-elevated);border:1px solid var(--hairline-strong);padding:0.85rem 1rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;">
-            <span style="font-size:0.88rem;font-weight:500;flex:1;">${esc(t.label)}</span>
-            <select class="arch-select" style="width:auto;min-width:250px;font-family:var(--font-mono);font-size:0.78rem;" onchange="setDragMatch('${q.id}','${t.id}',this.value)">
-              <option value="">— Assign Matching Token —</option>
+          <div style="border:var(--rule);padding:0.7rem;background:var(--vellum-light);display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+            <span style="font-size:0.85rem;">${esc(t.label)}</span>
+            <select class="swiss-select" style="width:auto;min-width:210px;font-family:var(--font-mono);font-size:0.75rem;" onchange="state.examAnswers['${q.id}']={...(state.examAnswers['${q.id}']||{}),'${t.id}':this.value};render()">
+              <option value="">— Match Token —</option>
               ${q.tokens.map(tok => `<option value="${esc(tok)}" ${cur[t.id] === tok ? 'selected' : ''}>${esc(tok)}</option>`).join("")}
             </select>
           </div>
@@ -791,745 +654,237 @@ function renderQuestionInteractiveBody(q, ans, rev) {
   return "";
 }
 
-function buildCadSiteGradingSvg(pin, rev, z) {
-  return `
-    <svg viewBox="0 0 100 70" style="width:100%;height:auto;display:block;">
-      <defs>
-        <pattern id="hatch-bldg" width="3" height="3" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-          <line x1="0" y1="0" x2="0" y2="3" stroke="#64748b" stroke-width="0.35" />
-        </pattern>
-      </defs>
-      <rect x="3" y="3" width="94" height="64" fill="none" stroke="#1e293b" stroke-width="0.5" stroke-dasharray="3,1.5" />
-      <path d="M 4 11 Q 52 27 96 9" fill="none" stroke="#854d0e" stroke-width="0.45" stroke-dasharray="2,1" />
-      <text x="6" y="9.5" font-size="2.6" fill="#854d0e" font-family="monospace">EL. 102'-0"</text>
-      <path d="M 4 21 Q 54 37 96 19" fill="none" stroke="#854d0e" stroke-width="0.55" />
-      <text x="6" y="19.5" font-size="2.6" fill="#854d0e" font-family="monospace">EL. 100'-0"</text>
-      <path d="M 4 34 Q 55 51 96 32" fill="none" stroke="#b45309" stroke-width="0.85" />
-      <text x="6" y="32.5" font-size="2.7" font-weight="bold" fill="#b45309" font-family="monospace">EL. 95'-0" SWALE AXIS</text>
-      <path d="M 4 51 Q 50 61 96 49" fill="none" stroke="#854d0e" stroke-width="0.55" />
-      <text x="6" y="49.5" font-size="2.6" fill="#854d0e" font-family="monospace">EL. 90'-0"</text>
+window.pickExamOption = function(qid, oid, type) {
+  if (type === "mc") state.examAnswers[qid] = [oid];
+  else {
+    const s = new Set(Array.isArray(state.examAnswers[qid]) ? state.examAnswers[qid] : []);
+    if (s.has(oid)) s.delete(oid); else s.add(oid);
+    state.examAnswers[qid] = Array.from(s);
+  }
+  render();
+};
 
-      <rect x="18" y="14" width="25" height="14" fill="url(#hatch-bldg)" stroke="#0f172a" stroke-width="0.8" />
-      <rect x="20" y="16" width="21" height="10" fill="#f8fafc" fill-opacity="0.88" />
-      <text x="21.5" y="21" font-size="2.4" font-weight="bold" fill="#0f172a" font-family="monospace">EXISTING GARAGE</text>
-      <text x="21.5" y="24.2" font-size="2.1" fill="#334155" font-family="monospace">FF EL. 102'-6"</text>
+window.strikeExamOption = function(qid, oid) {
+  const s = new Set(state.examStrikes[qid] || []);
+  if (s.has(oid)) s.delete(oid); else s.add(oid);
+  state.examStrikes[qid] = Array.from(s);
+  render();
+};
 
-      <rect x="44" y="42" width="27" height="16" fill="#e2e8f0" stroke="#0f172a" stroke-width="0.95" />
-      <text x="46" y="49.5" font-size="2.5" font-weight="bold" fill="#0f172a" font-family="monospace">PROPOSED ADDITION</text>
-      <text x="46" y="53" font-size="2.2" fill="#1e40af" font-family="monospace">FF EL. 90'-0" (PROTECT)</text>
-
-      <g transform="translate(90, 58)">
-        <circle cx="0" cy="0" r="3.5" fill="none" stroke="#0f172a" stroke-width="0.5" />
-        <polygon points="0,-3.5 -1.4,1.5 0,0.4 1.4,1.5" fill="#0f172a" />
-        <text x="-1.1" y="-4.3" font-size="2.4" font-weight="bold" font-family="monospace">N</text>
-      </g>
-
-      ${rev ? `<rect x="${z.xMin}" y="${z.yMin}" width="${z.xMax - z.xMin}" height="${z.yMax - z.yMin}" fill="rgba(22,163,74,0.22)" stroke="#15803d" stroke-width="0.9" stroke-dasharray="1.5,1" />` : ''}
-      ${pin ? `
-        <circle cx="${pin.x}" cy="${pin.y}" r="2.6" fill="#dc2626" stroke="#fff" stroke-width="0.6" />
-        <line x1="${pin.x - 4}" y1="${pin.y}" x2="${pin.x + 4}" y2="${pin.y}" stroke="#dc2626" stroke-width="0.45" />
-        <line x1="${pin.x}" y1="${pin.y - 4}" x2="${pin.x}" y2="${pin.y + 4}" stroke="#dc2626" stroke-width="0.45" />
-      ` : ''}
-    </svg>
-  `;
-}
-
-function buildCadWallSectionSvg(pin, rev, z) {
-  return `
-    <svg viewBox="0 0 100 70" style="width:100%;height:auto;display:block;">
-      <defs>
-        <pattern id="brick-hatch" width="4" height="4" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-          <line x1="0" y1="0" x2="0" y2="4" stroke="#7c2d12" stroke-width="0.5" />
-        </pattern>
-      </defs>
-      <text x="6" y="7" font-size="2.6" font-weight="bold" fill="#1e40af" font-family="monospace">EXTERIOR (-10°F WINTER · CZ 6)</text>
-      <text x="58" y="7" font-size="2.6" font-weight="bold" fill="#b45309" font-family="monospace">INTERIOR (+70°F · 40% RH)</text>
-
-      <rect x="10" y="12" width="12" height="50" fill="#c2593f" stroke="#431407" stroke-width="0.7" />
-      <rect x="10" y="12" width="12" height="50" fill="url(#brick-hatch)" />
-      <text x="11" y="66" font-size="2.1" font-family="monospace" fill="#0f172a">1.Brick</text>
-
-      <rect x="22" y="12" width="9" height="50" fill="#e0f2fe" stroke="#0284c7" stroke-width="0.5" />
-      <text x="22.3" y="66" font-size="2.1" font-family="monospace" fill="#0369a1">2.Cavity</text>
-
-      <rect x="31" y="12" width="12" height="50" fill="#fef08a" stroke="#ca8a04" stroke-width="0.6" />
-      <path d="M 31 16 L 43 22 L 31 28 L 43 34 L 31 40 L 43 46 L 31 52 L 43 58" fill="none" stroke="#a16207" stroke-width="0.45" />
-      <text x="31.5" y="66" font-size="2.1" font-family="monospace" fill="#854d0e">3.MinWool</text>
-
-      <rect x="43" y="12" width="5" height="50" fill="#94a3b8" stroke="#334155" stroke-width="0.6" />
-      <text x="43" y="10.5" font-size="2" font-family="monospace" fill="#334155">4.Sheath</text>
-
-      <rect x="48" y="12" width="22" height="50" fill="#f8fafc" stroke="#334155" stroke-width="0.7" />
-      <line x1="48" y1="12" x2="70" y2="62" stroke="#cbd5e1" stroke-width="0.5" />
-      <line x1="70" y1="12" x2="48" y2="62" stroke="#cbd5e1" stroke-width="0.5" />
-      <text x="52" y="38" font-size="2.4" font-weight="bold" font-family="monospace" fill="#334155">5. 6" STUD</text>
-
-      <rect x="70" y="12" width="6" height="50" fill="#fed7aa" stroke="#ea580c" stroke-width="0.8" />
-      <text x="68" y="10.5" font-size="2.2" font-weight="bold" font-family="monospace" fill="#c2410c">6.WARM FACE</text>
-
-      <rect x="76" y="12" width="7" height="50" fill="#e2e8f0" stroke="#475569" stroke-width="0.7" />
-      <text x="75.5" y="66" font-size="2.1" font-family="monospace" fill="#1e293b">7.GypBd</text>
-
-      ${rev ? `<rect x="${z.xMin}" y="${z.yMin}" width="${z.xMax - z.xMin}" height="${z.yMax - z.yMin}" fill="rgba(22,163,74,0.25)" stroke="#15803d" stroke-width="0.9" />` : ''}
-      ${pin ? `<circle cx="${pin.x}" cy="${pin.y}" r="2.6" fill="#dc2626" stroke="#fff" stroke-width="0.6" />` : ''}
-    </svg>
-  `;
-}
+window.clickBlueprintPin = function(e, qid) {
+  const svg = e.currentTarget.querySelector("svg");
+  const r = svg.getBoundingClientRect();
+  const x = Number((((e.clientX - r.left) / r.width) * 100).toFixed(1));
+  const y = Number((((e.clientY - r.top) / r.height) * 70).toFixed(1));
+  state.examAnswers[qid] = { x, y };
+  render();
+};
 
 /* ==========================================================================
-   TAB 03: AXP HOURS TRACKER & AI WORK-TASK RECOMMENDER
+   VIEW 3: AXP HOURS (MYNCARB 6 RINGS + WORK-TASK AI RECOMMENDER)
    ========================================================================== */
-function renderAxpTab(totalAxp) {
+function renderCalmAxp(totalApproved, totalRem) {
   return `
-    <div class="sheet-grid-12">
-      <div class="col-6 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">AXP-AI</span>
-            <h3 class="sheet-title">Work-Task to AXP Category Recommender</h3>
-          </div>
-          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-terracotta);font-weight:700;">96 NCARB Competencies</span>
+    <div class="exam-split">
+      <!-- Left Pane: Exact 6 MyNCARB Experience Area Progress Rings -->
+      <section class="exam-left-pane" style="justify-content:flex-start;">
+        <div class="pane-heading">
+          <span>EXPERIENCE AREA PROGRESS (MYNCARB RECORD)</span>
+          <button class="swiss-btn" style="padding:0.25rem 0.65rem;font-size:0.75rem;" onclick="openMyNcarbSyncModal()">SYNC / UPDATE MYNCARB ↗</button>
         </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:1rem;">
-          <p style="margin:0;font-size:0.86rem;color:var(--ink-secondary);">
-            Enter a task you performed at work (or click a studio preset below) to receive an instant NCARB AXP Experience Area classification, matched competency, and ARE 5.0 study synergy.
-          </p>
 
-          <div style="display:flex;flex-wrap:wrap;gap:0.45rem;">
-            <button class="btn-arch" style="font-size:0.75rem;padding:0.35rem 0.65rem;" onclick="runSampleTask('Reviewed contractor submittal log, concrete cylinder break reports, and curtain wall shop drawings; issued ASI #4')">Preset: Submittals &amp; ASI</button>
-            <button class="btn-arch" style="font-size:0.75rem;padding:0.35rem 0.65rem;" onclick="runSampleTask('Calculated municipal zoning FAR, front/side setbacks, and IBC Chapter 5 allowable area')">Preset: Zoning FAR &amp; IBC</button>
-            <button class="btn-arch" style="font-size:0.75rem;padding:0.35rem 0.65rem;" onclick="runSampleTask('Prepared firm Q4 staff utilization rate analysis, net multiplier, and AIA B101 fee proposal')">Preset: Utilization &amp; Fee</button>
-            <button class="btn-arch" style="font-size:0.75rem;padding:0.35rem 0.65rem;" onclick="runSampleTask('Detailed exterior masonry cavity wall section, through-wall flashing, and CSI 3-Part specs')">Preset: Wall Section &amp; Specs</button>
-          </div>
-
-          <textarea id="axp-task-input" rows="3" class="arch-textarea" placeholder="Describe what you worked on this week (e.g., 'Attended OAC site observation walk, reviewed Pay App G702, and drafted punch list')..."></textarea>
-
-          <div style="display:grid;grid-template-columns:2fr 1fr;gap:0.75rem;">
-            <div>
-              <label style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">PROJECT / FIRM</label>
-              <input id="axp-proj-input" type="text" class="arch-input" value="Midwest Civic Library Renovation" style="margin-top:0.25rem;" />
-            </div>
-            <div>
-              <label style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">HOURS LOGGED</label>
-              <input id="axp-hrs-input" type="number" step="0.5" class="arch-input" value="8.0" style="margin-top:0.25rem;font-family:var(--font-mono);" />
-            </div>
-          </div>
-
-          <div style="display:flex;flex-wrap:wrap;gap:0.6rem;">
-            <button class="btn-arch cobalt" onclick="analyzeAxpTaskInput()">1. Recommend AXP Area</button>
-            <button class="btn-arch primary" onclick="recordAxpWorkLog()">2. Log Hours to AXP Ledger</button>
-            <button class="btn-arch" onclick="exportAxpCsv()">⬇ Export MyNCARB CSV</button>
-          </div>
-
-          ${state.axpSuggestion ? `
-            <div style="background:var(--bg-elevated);border-left:4px solid var(--accent-verdigris);padding:1rem;font-size:0.84rem;display:flex;flex-direction:column;gap:0.35rem;">
-              <div style="font-family:var(--font-mono);font-weight:700;color:var(--accent-verdigris);">
-                ✓ RECOMMENDED AREA: ${esc(state.axpSuggestion.primary.code)} — ${esc(state.axpSuggestion.primary.name)} (${esc(state.axpSuggestion.confidence)})
-              </div>
-              <div><strong>Matched NCARB Competency:</strong> ${esc(state.axpSuggestion.primary.competency)}</div>
-              <div style="color:var(--ink-muted);font-family:var(--font-mono);font-size:0.76rem;">
-                Secondary Candidate Area: ${esc(state.axpSuggestion.secondary.code)} (${esc(state.axpSuggestion.secondary.name)})
-              </div>
-              <div style="color:var(--accent-cobalt);font-family:var(--font-mono);font-size:0.76rem;padding-top:0.25rem;">
-                💡 ${esc(state.axpSuggestion.synergy)}
-              </div>
-            </div>
-          ` : ''}
-        </div>
-      </div>
-
-      <div class="col-6 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">AXP-3740</span>
-            <h3 class="sheet-title">Six NCARB AXP Experience Areas (${totalAxp.toLocaleString()} / 3,740h)</h3>
-          </div>
-          <a href="${GOOGLE_SHEET_URL}" target="_blank" rel="noopener" class="btn-arch verdigris" style="padding:0.35rem 0.75rem;font-size:0.75rem;">Open Synced Sheet ↗</a>
-        </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:0.85rem;">
+        <div class="ncarb-rings-grid">
           ${db.axpData.areas.map(a => {
-            const pct = Math.min(100, ((a.totalLogged / a.requiredHours) * 100)).toFixed(1);
+            const pct = Math.min(100, (a.totalLogged / a.requiredHours) * 100);
+            const dash = (pct * 2.26).toFixed(1);
+            const rem = Number((a.requiredHours - a.totalLogged).toFixed(2));
             return `
-              <div style="border:1px solid var(--hairline);padding:0.8rem 1rem;background:var(--bg-canvas);">
-                <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.84rem;margin-bottom:0.4rem;">
-                  <span><strong style="font-family:var(--font-mono);background:var(--ink-primary);color:var(--bg-surface);padding:0.1rem 0.45rem;margin-right:0.5rem;">${a.code}</strong> <strong>${esc(a.name)}</strong></span>
-                  <span style="font-family:var(--font-mono);font-size:0.78rem;"><strong>${a.totalLogged}</strong> / ${a.requiredHours} hrs (${pct}%)</span>
+              <div class="ncarb-ring-card">
+                <div style="border-top:3px solid ${a.color || 'var(--cobalt)'};padding:0.75rem 0.85rem;">
+                  <div style="font-size:0.82rem;font-weight:700;color:var(--cobalt);text-decoration:underline;min-height:34px;">
+                    ${esc(a.name)}
+                  </div>
+                  <div style="padding:0.5rem 0;display:flex;justify-content:center;">
+                    <svg viewBox="0 0 96 96" style="width:105px;height:105px;">
+                      <circle cx="48" cy="48" r="36" fill="none" stroke="var(--vellum-tab)" stroke-width="7" />
+                      <circle cx="48" cy="48" r="36" fill="none" stroke="${a.color || 'var(--cobalt)'}" stroke-width="7" stroke-dasharray="${dash} 226.2" transform="rotate(-90 48 48)" />
+                      <text x="48" y="38" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--ink)">${a.totalLogged}</text>
+                      <text x="48" y="49" text-anchor="middle" font-family="var(--font-sans)" font-size="8.5" fill="var(--ink-muted)">approved</text>
+                      <line x1="28" y1="53" x2="68" y2="53" stroke="var(--rule-subtle)" stroke-width="0.8" />
+                      <text x="48" y="63" text-anchor="middle" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="var(--ink)">${a.requiredHours.toLocaleString()}</text>
+                      <text x="48" y="72" text-anchor="middle" font-family="var(--font-sans)" font-size="8" fill="var(--ink-muted)">required</text>
+                    </svg>
+                  </div>
                 </div>
-                <div class="progress-track">
-                  <div class="progress-fill" style="width:${pct}%;background:var(--accent-cobalt)"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);margin-top:0.35rem;">
-                  <span>Setting A: ${a.approvedSettingA}h · Setting O: ${a.approvedSettingO}h</span>
-                  <span>Remaining: ${Math.max(0, a.requiredHours - a.totalLogged)}h</span>
+                <div style="border-top:var(--rule-subtle);padding:0.4rem 0.75rem;text-align:center;font-size:0.75rem;color:var(--ink-muted);">
+                  <div><strong>${a.pendingHours || 0}</strong> submitted</div>
+                  <div style="border-top:var(--rule-subtle);margin-top:0.25rem;padding-top:0.25rem;">
+                    <strong>${rem.toLocaleString()}</strong> remaining
+                  </div>
                 </div>
               </div>
             `;
           }).join("")}
         </div>
-      </div>
 
-      <div class="col-12 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">LEDGER</span>
-            <h3 class="sheet-title">Recorded AXP Work Experience Entries (Synced with Google Sheet)</h3>
+        <div style="border:var(--rule);border-top:3px solid #d97706;padding:0.85rem 1rem;background:var(--vellum-light);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:700;font-size:0.92rem;">No Additional Experience Requirements for Indiana</div>
+            <div style="font-size:0.78rem;color:var(--ink-muted);">Indiana PLA requires the standard 3,740 AXP hours (${totalApproved} approved · ${totalRem} remaining).</div>
           </div>
-          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">NCARB Six-Month Reporting Rule Enforced (100% Credit ≤ 8 Months)</span>
+          <a href="${MYNCARB_EXP_URL}" target="_blank" rel="noopener" class="swiss-btn">OPEN MYNCARB.ORG ↗</a>
         </div>
-        <div class="sheet-body" style="overflow-x:auto;">
-          <table class="arch-table">
-            <thead>
-              <tr>
-                <th>Entry ID</th><th>Date</th><th>Project / Setting</th><th>Work Task Description</th><th>AXP Area</th><th>Hours</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${db.axpData.workLogs.map(l => `
-                <tr>
-                  <td style="font-family:var(--font-mono);font-weight:700;">${esc(l.id)}</td>
-                  <td style="font-family:var(--font-mono);">${esc(l.date)}</td>
-                  <td><strong>${esc(l.project)}</strong><br/><span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">${esc(l.setting)}</span></td>
-                  <td>${esc(l.description)}<br/><span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-cobalt)">${esc(l.competency)}</span></td>
-                  <td><span class="div-code-tag">${esc(l.area)}</span></td>
-                  <td style="font-family:var(--font-mono);font-weight:700;">${l.hours}h</td>
-                  <td><span class="status-tag status-pass">${esc(l.status)}</span></td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
+      </section>
+
+      <!-- Right Pane: Work-Task to AXP Category Recommender -->
+      <aside class="exam-right-pane">
+        <div class="pane-heading">
+          <span>WORK-TASK TO AXP CATEGORY RECOMMENDER</span>
         </div>
-      </div>
+
+        <p style="margin:0;font-size:0.84rem;color:var(--ink-muted);">
+          Paste a task from your Deltek Vantagepoint timesheet or studio log to get an instant AXP Experience Area recommendation.
+        </p>
+
+        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+          <button class="swiss-btn" style="font-size:0.72rem;padding:0.25rem 0.55rem;" onclick="setAxpPreset('Reviewed contractor submittal log, curtain wall shop drawings, and issued ASI #4')">Submittals &amp; ASI</button>
+          <button class="swiss-btn" style="font-size:0.72rem;padding:0.25rem 0.55rem;" onclick="setAxpPreset('Calculated municipal zoning FAR, setbacks, and IBC Chapter 5 allowable area')">Zoning FAR &amp; IBC</button>
+          <button class="swiss-btn" style="font-size:0.72rem;padding:0.25rem 0.55rem;" onclick="setAxpPreset('Prepared firm Q4 staff utilization rate, net multiplier, and AIA B101 fee proposal')">Utilization &amp; Fee</button>
+        </div>
+
+        <textarea rows="3" class="swiss-textarea" oninput="state.axpTaskInput=this.value">${esc(state.axpTaskInput)}</textarea>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:0.65rem;">
+          <div>
+            <label style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">PROJECT</label>
+            <input type="text" class="swiss-input" value="${esc(state.axpProject)}" oninput="state.axpProject=this.value" />
+          </div>
+          <div>
+            <label style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">HOURS</label>
+            <input type="number" step="0.25" class="swiss-input" value="${state.axpHours}" oninput="state.axpHours=Number(this.value)" />
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+          <button class="swiss-btn cobalt" onclick="suggestAxpArea()">SUGGEST CATEGORY</button>
+          <button class="swiss-btn terracotta" onclick="logAxpEntry()">+ ADD HOURS</button>
+          <button class="swiss-btn" onclick="downloadAxpCsv()">⬇ CSV</button>
+        </div>
+
+        ${state.axpSuggestion ? `
+          <div style="border:var(--rule);border-left:4px solid var(--terracotta);padding:0.85rem;background:var(--vellum);font-size:0.82rem;">
+            <div style="font-family:var(--font-mono);font-weight:700;color:var(--terracotta);">
+              RECOMMENDED: ${esc(state.axpSuggestion.code)} — ${esc(state.axpSuggestion.name)}
+            </div>
+            <div style="margin-top:0.25rem;">${esc(state.axpSuggestion.competency)}</div>
+          </div>
+        ` : ""}
+      </aside>
     </div>
   `;
 }
 
-/* ==========================================================================
-   TAB 04: INTERACTIVE VISUAL CONCEPT ATLAS (AMBER BOOK STYLE) & AI COACH
-   ========================================================================== */
-function renderAtlasTab() {
-  const rev = Number(state.finRevenue);
-  const dl = Number(state.finDirectLabor);
-  const oh = Number(state.finOverhead);
-  const netMult = (rev / dl).toFixed(2);
-  const ohRate = (oh / dl).toFixed(2);
-  const breakEven = (1 + oh / dl).toFixed(2);
-  const profit = rev - dl - oh;
-  const profitPct = ((profit / rev) * 100).toFixed(1);
-
-  const lotArea = state.zoningLotW * state.zoningLotD;
-  const maxGfa = lotArea * state.zoningFar;
-  const buildW = Math.max(10, state.zoningLotW - 2 * state.zoningSetbackS);
-  const buildD = Math.max(10, state.zoningLotD - 2 * state.zoningSetbackF);
-  const maxFootprint = buildW * buildD;
-  const minStories = Math.ceil(maxGfa / maxFootprint);
-
-  const card = db.flashcards[state.fcIdx % db.flashcards.length];
-
-  return `
-    <div class="sheet-grid-12">
-      <!-- Simulator 1: PcM Firm Financial Health Interactive Lab -->
-      <div class="col-6 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">ATLAS-01 · PcM</span>
-            <h3 class="sheet-title">Interactive Firm Financial Ratio Lab</h3>
-          </div>
-          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-verdigris)">Target Multiplier: 3.00x</span>
-        </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:1rem;">
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;background:var(--bg-elevated);padding:0.9rem;border:1px solid var(--hairline);text-align:center;font-family:var(--font-mono);">
-            <div>
-              <div style="font-size:0.75rem;color:var(--ink-muted)">NET MULTIPLIER</div>
-              <div style="font-size:1.45rem;font-weight:700;color:${Number(netMult) >= Number(breakEven) ? 'var(--accent-verdigris)' : 'var(--accent-crimson)'}">${netMult}x</div>
-              <div style="font-size:0.75rem;">NOR ÷ Direct Labor</div>
-            </div>
-            <div>
-              <div style="font-size:0.75rem;color:var(--ink-muted)">BREAK-EVEN RATE</div>
-              <div style="font-size:1.45rem;font-weight:700;color:var(--accent-cobalt)">${breakEven}x</div>
-              <div style="font-size:0.75rem;">1 + (${ohRate} OH Rate)</div>
-            </div>
-            <div>
-              <div style="font-size:0.75rem;color:var(--ink-muted)">NET PROFIT MARGIN</div>
-              <div style="font-size:1.45rem;font-weight:700;color:${profit >= 0 ? 'var(--accent-verdigris)' : 'var(--accent-crimson)'}">${profitPct}%</div>
-              <div style="font-size:0.75rem;">$${(profit / 1000).toFixed(0)}k Net</div>
-            </div>
-          </div>
-
-          <div style="display:flex;flex-direction:column;gap:0.65rem;font-family:var(--font-mono);font-size:0.78rem;">
-            <label>Net Operating Revenue (NOR): <strong>$${(rev / 1000000).toFixed(2)}M</strong>
-              <input type="range" min="2000000" max="6500000" step="100000" value="${rev}" style="width:100%" oninput="state.finRevenue=Number(this.value);renderApp()" />
-            </label>
-            <label>Direct (Billable) Labor Cost: <strong>$${(dl / 1000000).toFixed(2)}M</strong>
-              <input type="range" min="800000" max="2500000" step="50000" value="${dl}" style="width:100%" oninput="state.finDirectLabor=Number(this.value);renderApp()" />
-            </label>
-            <label>Total Indirect Overhead Cost: <strong>$${(oh / 1000000).toFixed(2)}M</strong>
-              <input type="range" min="1000000" max="3500000" step="50000" value="${oh}" style="width:100%" oninput="state.finOverhead=Number(this.value);renderApp()" />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Simulator 2: PA / PPP Interactive Zoning FAR & Setback Massing Calculator -->
-      <div class="col-6 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">ATLAS-02 · PA / PPP</span>
-            <h3 class="sheet-title">Interactive Zoning FAR &amp; Setback Envelope Lab</h3>
-          </div>
-          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-terracotta)">FAR × Total Lot Area</span>
-        </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:1rem;">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;background:var(--bg-elevated);padding:0.85rem;border:1px solid var(--hairline);text-align:center;font-family:var(--font-mono);font-size:0.78rem;">
-            <div><div style="color:var(--ink-muted)">Total Lot</div><div style="font-size:1.1rem;font-weight:700;">${lotArea.toLocaleString()} SF</div></div>
-            <div><div style="color:var(--ink-muted)">Max GFA (FAR)</div><div style="font-size:1.1rem;font-weight:700;color:var(--accent-cobalt)">${maxGfa.toLocaleString()} SF</div></div>
-            <div><div style="color:var(--ink-muted)">Max Footprint</div><div style="font-size:1.1rem;font-weight:700;">${maxFootprint.toLocaleString()} SF</div></div>
-            <div><div style="color:var(--ink-muted)">Min Stories</div><div style="font-size:1.1rem;font-weight:700;color:var(--accent-terracotta)">${minStories} Floors</div></div>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;font-family:var(--font-mono);font-size:0.76rem;">
-            <label>Lot Width (${state.zoningLotW}'):
-              <input type="range" min="60" max="200" step="10" value="${state.zoningLotW}" style="width:100%" oninput="state.zoningLotW=Number(this.value);renderApp()" />
-            </label>
-            <label>Lot Depth (${state.zoningLotD}'):
-              <input type="range" min="100" max="250" step="10" value="${state.zoningLotD}" style="width:100%" oninput="state.zoningLotD=Number(this.value);renderApp()" />
-            </label>
-            <label>Max FAR (${state.zoningFar.toFixed(1)}):
-              <input type="range" min="0.5" max="5.0" step="0.5" value="${state.zoningFar}" style="width:100%" oninput="state.zoningFar=Number(this.value);renderApp()" />
-            </label>
-            <label>Front/Rear Setback (${state.zoningSetbackF}'):
-              <input type="range" min="5" max="30" step="5" value="${state.zoningSetbackF}" style="width:100%" oninput="state.zoningSetbackF=Number(this.value);renderApp()" />
-            </label>
-          </div>
-          <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-secondary);">
-            <strong>ARE Exam Trap Reminder:</strong> Setbacks reduce the <em>Buildable Footprint</em> (${buildW}' × ${buildD}' = ${maxFootprint.toLocaleString()} SF), NEVER the Lot Area used for FAR (${lotArea.toLocaleString()} SF × ${state.zoningFar} = ${maxGfa.toLocaleString()} SF).
-          </div>
-        </div>
-      </div>
-
-      <!-- Simulator 3: Interactive Climate Zone Vapor Retarder & Dew-Point Diagram -->
-      <div class="col-6 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">ATLAS-03 · PPD / PDD</span>
-            <h3 class="sheet-title">Hygrothermal Vapor Drive &amp; Dew-Point Switcher</h3>
-          </div>
-          <div style="display:flex;gap:0.35rem;">
-            <button class="btn-arch ${state.climateMode === 'cold' ? 'primary' : ''}" style="padding:0.3rem 0.65rem;font-size:0.75rem;" onclick="state.climateMode='cold';renderApp()">CZ 6 Chicago (Cold)</button>
-            <button class="btn-arch ${state.climateMode === 'humid' ? 'primary' : ''}" style="padding:0.3rem 0.65rem;font-size:0.75rem;" onclick="state.climateMode='humid';renderApp()">CZ 2 Houston (Hot-Humid)</button>
-          </div>
-        </div>
-        <div class="sheet-body">
-          <svg viewBox="0 0 420 175" style="width:100%;height:auto;display:block;border:1px solid var(--hairline);background:var(--bg-canvas);">
-            <rect x="20" y="25" width="90" height="115" fill="${state.climateMode === 'cold' ? '#dbeafe' : '#ffedd5'}" />
-            <text x="65" y="45" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">EXTERIOR</text>
-            <text x="65" y="62" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="${state.climateMode === 'cold' ? '#1d4ed8' : '#c2410c'}">${state.climateMode === 'cold' ? '-10°F Dry' : '+95°F Humid'}</text>
-
-            <rect x="110" y="25" width="45" height="115" fill="#b45309" fill-opacity="0.25" stroke="#78350f" />
-            <text x="132" y="85" text-anchor="middle" font-family="monospace" font-size="9" fill="#1e293b">Cladding</text>
-
-            <rect x="155" y="25" width="14" height="115" fill="${state.climateMode === 'humid' ? '#16a34a' : '#e2e8f0'}" />
-            <rect x="169" y="25" width="95" height="115" fill="#fef08a" stroke="#ca8a04" />
-            <text x="216" y="80" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#854d0e">THERMAL INSULATION</text>
-
-            <rect x="264" y="25" width="14" height="115" fill="${state.climateMode === 'cold' ? '#16a34a' : '#e2e8f0'}" />
-            <rect x="278" y="25" width="32" height="115" fill="#cbd5e1" stroke="#475569" />
-            <text x="294" y="85" text-anchor="middle" font-family="monospace" font-size="9" fill="#1e293b">Gyp</text>
-
-            <rect x="310" y="25" width="90" height="115" fill="${state.climateMode === 'cold' ? '#ffedd5' : '#dbeafe'}" />
-            <text x="355" y="45" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#1e293b">INTERIOR</text>
-            <text x="355" y="62" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#0f172a">+70°F Conditioned</text>
-
-            <text x="210" y="158" text-anchor="middle" font-family="monospace" font-size="9.5" font-weight="bold" fill="#15803d">
-              ${state.climateMode === 'cold'
-                ? '← VAPOR DRIVE (IN → OUT) · GREEN = INTERIOR VAPOR RETARDER'
-                : '→ VAPOR DRIVE (OUT → IN) · GREEN = EXTERIOR VAPOR RETARDER'}
-            </text>
-          </svg>
-        </div>
-      </div>
-
-      <!-- Simulator 4: Spaced-Repetition Flashcards -->
-      <div class="col-6 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">FLASH-${(state.fcIdx % db.flashcards.length) + 1}/${db.flashcards.length}</span>
-            <h3 class="sheet-title">Active-Recall Spaced Repetition Deck</h3>
-          </div>
-          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">Click card to flip</span>
-        </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:0.9rem;">
-          <div class="flashcard-stage" onclick="state.fcFlipped=!state.fcFlipped;renderApp()">
-            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;">
-              <span class="div-code-tag">${esc(card.division)} · ${esc(card.category)}</span>
-              <span style="color:var(--accent-cobalt);font-weight:700;">${state.fcFlipped ? 'ANSWER SIDE (CLICK TO FLIP)' : 'PROMPT SIDE (CLICK TO FLIP)'}</span>
-            </div>
-            <div style="font-family:var(--font-display);font-size:1.4rem;line-height:1.35;margin:0.85rem 0;">
-              ${esc(state.fcFlipped ? card.back : card.front)}
-            </div>
-            <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">↻ Click anywhere on card surface to toggle rationale</div>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;">
-            <button class="btn-arch" onclick="state.fcIdx=(state.fcIdx-1+db.flashcards.length)%db.flashcards.length;state.fcFlipped=false;renderApp()">← Previous Card</button>
-            <button class="btn-arch cobalt" onclick="state.fcFlipped=!state.fcFlipped;renderApp()">Flip Card ↻</button>
-            <button class="btn-arch primary" onclick="state.fcIdx=(state.fcIdx+1)%db.flashcards.length;state.fcFlipped=false;renderApp()">Next Card →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- High-Yield Visual Concept Reference Cards (Amber Book Synthesis) -->
-      <div class="col-12 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">CONCEPTS</span>
-            <h3 class="sheet-title">High-Yield Architectural Formula &amp; Code Synthesis Plates</h3>
-          </div>
-          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">Amber Book · PPI2Pass · Black Spectacles Core Takeaways</span>
-        </div>
-        <div class="sheet-body">
-          <div class="divisions-matrix" style="margin-top:0;">
-            ${(db.visualConcepts || []).map(vc => `
-              <div style="border:1px solid var(--hairline-strong);padding:1.15rem;background:var(--bg-canvas);display:flex;flex-direction:column;justify-content:space-between;gap:0.75rem;">
-                <div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.45rem;">
-                    <span class="div-code-tag">${esc(vc.division)}</span>
-                    <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">${esc(vc.id)}</span>
-                  </div>
-                  <h4 style="margin:0;font-family:var(--font-display);font-size:1.3rem;font-weight:400;">${esc(vc.title)}</h4>
-                  <div style="font-size:0.78rem;color:var(--ink-muted);margin-top:0.15rem;">${esc(vc.subtitle)}</div>
-                </div>
-                <div style="background:var(--bg-elevated);border-left:3px solid var(--accent-terracotta);padding:0.55rem 0.75rem;font-family:var(--font-mono);font-size:0.75rem;font-weight:600;">
-                  ${esc(vc.keyFormula)}
-                </div>
-                <ul style="margin:0;padding-left:1.1rem;font-size:0.8rem;color:var(--ink-secondary);line-height:1.5;">
-                  ${(vc.takeaways || []).map(t => `<li>${esc(t)}</li>`).join("")}
-                </ul>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/* ==========================================================================
-   TAB 05: GOOGLE DRIVE PDF LIBRARY (13 INDEXED STUDY DOCUMENTS)
-   ========================================================================== */
-function renderLibraryTab() {
-  const list = state.resFilter === "ALL"
-    ? db.driveResources
-    : db.driveResources.filter(r => r.divisions.includes(state.resFilter));
-
-  return `
-    <div class="arch-sheet" style="margin-top:1.25rem;padding:1rem 1.35rem;display:flex;flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
-      <div>
-        <h3 style="margin:0;font-family:var(--font-display);font-size:1.5rem;font-weight:400;">Connected Google Drive 'ARE Study' Monograph Library (${db.driveResources.length} PDFs)</h3>
-        <p style="margin:0.2rem 0 0;font-size:0.84rem;color:var(--ink-secondary);">Every PDF below has been indexed from your Google Drive folder with direct study syntheses and one-click Drive viewer links.</p>
-      </div>
-      <div style="display:flex;gap:0.6rem;align-items:center;">
-        <select class="arch-select" style="width:auto;" onchange="state.resFilter=this.value;renderApp()">
-          <option value="ALL" ${state.resFilter === 'ALL' ? 'selected' : ''}>All 6 Divisions (${db.driveResources.length} PDFs)</option>
-          ${db.divisions.map(d => `<option value="${d.code}" ${state.resFilter === d.code ? 'selected' : ''}>${d.code} — ${esc(d.name)}</option>`).join("")}
-        </select>
-        <a href="${DRIVE_FOLDER_URL}" target="_blank" rel="noopener" class="btn-arch cobalt">Open 'ARE Study' Drive Folder ↗</a>
-      </div>
-    </div>
-
-    <div class="divisions-matrix">
-      ${list.map(r => `
-        <article class="division-plate">
-          <div class="division-plate-top">
-            <div class="division-badge-row">
-              <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent-terracotta);font-weight:700;">${esc(r.provider || r.category)}</span>
-              <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);">${esc(r.pages ? r.pages + ' pp · ' : '')}${esc(r.size)}</span>
-            </div>
-            <h4 class="division-name" style="font-size:1.25rem;">${esc(r.title)}</h4>
-            <p class="division-desc">${esc(r.summary)}</p>
-          </div>
-          <div style="padding:0.75rem 1.25rem;background:var(--bg-elevated);border-bottom:1px solid var(--hairline);font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-secondary);">
-            <strong>Category:</strong> ${esc(r.category)}<br/>
-            <strong>File:</strong> ${esc(r.filename)}
-          </div>
-          <div class="division-plate-foot" style="flex-direction:row;align-items:center;justify-content:space-between;">
-            <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
-              ${r.divisions.map(d => `<span class="div-code-tag" style="font-size:0.75rem;padding:0.1rem 0.4rem;">${esc(d)}</span>`).join("")}
-            </div>
-            <a href="${esc(r.driveUrl)}" target="_blank" rel="noopener" class="btn-arch primary" style="padding:0.4rem 0.8rem;font-size:0.75rem;">Open PDF in Drive ↗</a>
-          </div>
-        </article>
-      `).join("")}
-    </div>
-  `;
-}
-
-/* ==========================================================================
-   TAB 06: NATIONAL PASS/FAIL STATS & MIDWEST/CENTRAL BOARD NEWS
-   ========================================================================== */
-function renderStatsTab() {
-  const reg = db.ncarbNewsAndRegional || {};
-  const jurisdictions = reg.midwestJurisdictions || [];
-  const newsFeed = reg.weeklyNewsFeed || [];
-  const st = jurisdictions.find(j => j.code === state.midwestState) || jurisdictions[0] || {};
-
-  return `
-    <div class="sheet-grid-12">
-      <div class="col-7 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">NCARB-BTN</span>
-            <h3 class="sheet-title">National ARE 5.0 Pass/Fail Statistics by Division</h3>
-          </div>
-          <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)">NCARB by the Numbers (2023–2026)</span>
-        </div>
-        <div class="sheet-body" style="overflow-x:auto;">
-          <table class="arch-table">
-            <thead>
-              <tr>
-                <th>Division</th><th>2023</th><th>2024</th><th>2025/26 Nat'l</th><th>1st Attempt</th><th>Midwest Avg</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${db.divisions.map(d => `
-                <tr>
-                  <td><span class="div-code-tag" style="margin-right:0.4rem;">${d.code}</span> <strong>${esc(d.name)}</strong></td>
-                  <td style="font-family:var(--font-mono);">${d.passRates['2023']}%</td>
-                  <td style="font-family:var(--font-mono);">${d.passRates['2024']}%</td>
-                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-cobalt);">${d.passRates['2025']}%</td>
-                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-verdigris);">${d.passRates.firstAttempt}%</td>
-                  <td style="font-family:var(--font-mono);font-weight:700;">${d.passRates.midwestAvg}%</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="col-5 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">MIDWEST-PSI</span>
-            <h3 class="sheet-title">Regional Board &amp; PSI Test Centers</h3>
-          </div>
-          <select class="arch-select" style="width:auto;" onchange="state.midwestState=this.value;renderApp()">
-            ${jurisdictions.map(j => `<option value="${j.code}" ${j.code === state.midwestState ? 'selected' : ''}>${esc(j.state)}</option>`).join("")}
-          </select>
-        </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:0.9rem;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong style="font-size:1rem;">${esc(st.state)}</strong>
-            <span class="status-tag status-pass">State Pass Rate: ${st.overallPassRate || st.passRate || 57}%</span>
-          </div>
-          <p style="margin:0;font-size:0.86rem;color:var(--ink-secondary);line-height:1.55;">${esc(st.boardRules || st.rules)}</p>
-          <div style="background:var(--bg-elevated);padding:0.85rem;border:1px solid var(--hairline);font-family:var(--font-mono);font-size:0.76rem;">
-            <strong>Active PSI Test Centers:</strong><br/>
-            ${esc((st.psiCenters || []).join(" · "))}
-          </div>
-          <div style="background:var(--accent-brass-soft);color:var(--accent-brass);padding:0.75rem 0.9rem;font-family:var(--font-mono);font-size:0.76rem;font-weight:600;">
-            📍 Regional Bulletin: ${esc(st.localAlert || st.alert)}
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 arch-sheet">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">BULLETIN</span>
-            <h3 class="sheet-title">Weekly NCARB Examination &amp; Licensure News</h3>
-          </div>
-        </div>
-        <div class="sheet-body">
-          <div class="divisions-matrix" style="margin-top:0;">
-            ${newsFeed.map(n => `
-              <div style="border:1px solid var(--hairline-strong);padding:1.1rem;background:var(--bg-canvas);display:flex;flex-direction:column;gap:0.45rem;">
-                <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.75rem;">
-                  <span style="color:var(--accent-terracotta);font-weight:700;">${esc(n.category || n.tag)}</span>
-                  <span style="color:var(--ink-muted)">${esc(n.date)}</span>
-                </div>
-                <h4 style="margin:0;font-family:var(--font-display);font-size:1.25rem;font-weight:400;">${esc(n.title)}</h4>
-                <p style="margin:0;font-size:0.84rem;color:var(--ink-secondary);line-height:1.55;">${esc(n.summary)}</p>
-                <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted);margin-top:auto;padding-top:0.35rem;">Source: ${esc(n.source || 'NCARB')}</div>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/* ==========================================================================
-   INTERACTIVE HANDLERS & MODALS
-   ========================================================================== */
-window.switchTab = function(tab) {
-  state.tab = tab;
-  renderApp();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-};
-
-window.launchDivisionSim = function(code) {
-  state.simDivision = code;
-  state.simLegacy = "ALL";
-  state.simType = "ALL";
-  state.simItems = db.questions.filter(q => q.division === code);
-  state.simIdx = 0;
-  state.simReport = null;
-  state.tab = "simulator";
-  renderApp();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-};
-
-window.applySimFilters = function() {
-  state.simDivision = document.getElementById("sim-flt-div").value;
-  state.simLegacy = document.getElementById("sim-flt-leg").value;
-  state.simType = document.getElementById("sim-flt-type").value;
-  let pool = [...db.questions];
-  if (state.simDivision !== "ALL") pool = pool.filter(q => q.division === state.simDivision);
-  if (state.simLegacy !== "ALL") pool = pool.filter(q => q.legacyExam === state.simLegacy);
-  if (state.simType !== "ALL") pool = pool.filter(q => q.type === state.simType);
-  state.simItems = pool.length ? pool : [...db.questions];
-  state.simIdx = 0;
-  state.simReport = null;
-  renderApp();
-};
-
-window.selectSimOption = function(qid, oid, type) {
-  if (type === "mc") state.simAnswers[qid] = [oid];
-  else {
-    const s = new Set(Array.isArray(state.simAnswers[qid]) ? state.simAnswers[qid] : []);
-    if (s.has(oid)) s.delete(oid); else s.add(oid);
-    state.simAnswers[qid] = Array.from(s);
+function matchTaskToArea(txt) {
+  const t = (txt || "").toLowerCase();
+  if (t.includes("submittal") || t.includes("shop") || t.includes("asi") || t.includes("pay") || t.includes("site visit")) {
+    return { code: "CE", name: "Construction & Evaluation", competency: "Review contractor submittals, shop drawings, RFIs, and payment applications" };
   }
-  renderApp();
-};
-
-window.toggleSimStrike = function(qid, oid) {
-  const s = new Set(state.simStrikes[qid] || []);
-  if (s.has(oid)) s.delete(oid); else s.add(oid);
-  state.simStrikes[qid] = Array.from(s);
-  renderApp();
-};
-
-window.placeHotspotPin = function(e, qid) {
-  const svg = e.currentTarget.querySelector("svg");
-  const r = svg.getBoundingClientRect();
-  const x = Number((((e.clientX - r.left) / r.width) * 100).toFixed(1));
-  const y = Number((((e.clientY - r.top) / r.height) * 70).toFixed(1));
-  state.simAnswers[qid] = { x, y };
-  renderApp();
-};
-
-window.setDragMatch = function(qid, tid, val) {
-  state.simAnswers[qid] = { ...(state.simAnswers[qid] || {}), [tid]: val };
-  renderApp();
-};
-
-window.toggleFlag = function(qid) {
-  state.simFlags[qid] = !state.simFlags[qid];
-  renderApp();
-};
-
-window.revealCurrentItem = function(qid) {
-  state.simRevealed[qid] = true;
-  renderApp();
-};
-
-window.stepSimItem = function(dir) {
-  const n = state.simIdx + dir;
-  if (n >= 0 && n < state.simItems.length) {
-    state.simIdx = n;
-    state.simCaseTab = 0;
-    renderApp();
+  if (t.includes("zoning") || t.includes("far") || t.includes("setback") || t.includes("program")) {
+    return { code: "PA", name: "Programming & Analysis", competency: "Analyze site zoning constraints, FAR, setbacks, and space programming" };
   }
+  if (t.includes("multiplier") || t.includes("utilization") || t.includes("overhead") || t.includes("firm")) {
+    return { code: "PcM", name: "Practice Management", competency: "Establish and monitor firm financial metrics (utilization, overhead, net multiplier)" };
+  }
+  if (t.includes("schedule") || t.includes("b101") || t.includes("consultant")) {
+    return { code: "PjM", name: "Project Management", competency: "Manage project work plans, CPM schedules, and AIA Owner/Consultant agreements" };
+  }
+  if (t.includes("wall") || t.includes("flashing") || t.includes("spec") || t.includes("detail")) {
+    return { code: "PDD", name: "Project Development & Documentation", competency: "Prepare construction documents, wall assembly details, and CSI 3-Part specifications" };
+  }
+  return { code: "PPD", name: "Project Planning & Design", competency: "Perform schematic design alternatives, IBC life-safety egress, and system selection" };
+}
+
+window.setAxpPreset = function(txt) {
+  state.axpTaskInput = txt;
+  state.axpSuggestion = matchTaskToArea(txt);
+  render();
 };
 
-window.scoreExamSession = function() {
-  let corr = 0;
-  state.simItems.forEach(q => {
-    state.simRevealed[q.id] = true;
-    if (evaluateItem(q, state.simAnswers[q.id])) corr++;
-  });
-  const total = state.simItems.length || 1;
-  const accuracy = Number(((corr / total) * 100).toFixed(1));
-  const scaledScore = Math.min(800, Math.max(100, Math.round(220 + (accuracy / 100) * 500)));
-  state.simReport = { total, correct: corr, accuracy, scaledScore, passed: scaledScore >= 550 };
-  renderApp();
+window.suggestAxpArea = function() {
+  state.axpSuggestion = matchTaskToArea(state.axpTaskInput);
+  render();
 };
 
-window.runSampleTask = function(txt) {
-  state.axpSuggestion = classifyWorkTask(txt);
-  renderApp();
-  const el = document.getElementById("axp-task-input");
-  if (el) el.value = txt;
-};
-
-window.analyzeAxpTaskInput = function() {
-  const txt = document.getElementById("axp-task-input")?.value || "";
-  state.axpSuggestion = classifyWorkTask(txt);
-  renderApp();
-  const el = document.getElementById("axp-task-input");
-  if (el) el.value = txt;
-};
-
-window.recordAxpWorkLog = function() {
-  const txt = document.getElementById("axp-task-input")?.value?.trim() || "Architectural project task";
-  const proj = document.getElementById("axp-proj-input")?.value || "Studio Project";
-  const hrs = Number(document.getElementById("axp-hrs-input")?.value || 8);
-  const sug = classifyWorkTask(txt);
-
+window.logAxpEntry = function() {
+  const m = matchTaskToArea(state.axpTaskInput);
+  state.axpSuggestion = m;
   db.axpData.workLogs.unshift({
     id: `AXP-${100 + db.axpData.workLogs.length + 1}`,
     date: "2026-11-06",
-    project: proj,
+    project: state.axpProject,
     setting: "Setting A",
-    description: txt,
-    area: sug.primary.code,
-    competency: sug.primary.competency,
-    hours: hrs,
-    credit: "100% (<1 yr)",
+    description: state.axpTaskInput,
+    area: m.code,
+    competency: m.competency,
+    hours: state.axpHours,
     status: "Approved"
   });
-
-  const area = db.axpData.areas.find(a => a.code === sug.primary.code);
-  if (area) {
-    area.approvedSettingA = Number((area.approvedSettingA + hrs).toFixed(1));
-    area.totalLogged = Number((area.totalLogged + hrs).toFixed(1));
-  }
-  saveAxpState();
-  renderApp();
+  const area = db.axpData.areas.find(a => a.code === m.code);
+  if (area) area.totalLogged = Number((area.totalLogged + state.axpHours).toFixed(2));
+  saveAxpToStorage();
+  render();
 };
 
-window.exportAxpCsv = function() {
-  const rows = [["Entry_ID", "Date", "Project", "Setting", "Description", "AXP_Area", "Hours", "Status"]];
-  db.axpData.workLogs.forEach(l => rows.push([l.id, l.date, `"${l.project}"`, l.setting, `"${l.description}"`, l.area, l.hours, l.status]));
+window.downloadAxpCsv = function() {
+  const rows = [["Area", "Code", "Required_Hours", "Approved_Hours", "Submitted_Hours", "Remaining_Hours"]];
+  db.axpData.areas.forEach(a => rows.push([`"${a.name}"`, a.code, a.requiredHours, a.totalLogged, a.pendingHours || 0, Number((a.requiredHours - a.totalLogged).toFixed(2))]));
   const blob = new Blob([rows.map(r => r.join(",")).join("\n")], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "MyNCARB_AXP_Experience_Ledger.csv";
+  a.download = "MyNCARB_AXP_Summary.csv";
   a.click();
 };
 
-window.openCalculatorModal = function() {
+/* ==========================================================================
+   MYNCARB SIGN-IN & HOURS SYNC MODAL
+   ========================================================================== */
+window.openMyNcarbSyncModal = function() {
   const m = document.getElementById("modal-root");
   m.innerHTML = `
-    <div class="arch-modal-backdrop" onclick="document.getElementById('modal-root').innerHTML=''">
-      <div class="arch-modal-window" onclick="event.stopPropagation()">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">CALC</span>
-            <h3 class="sheet-title">NCARB / PSI Scientific &amp; Ratio Calculator</h3>
-          </div>
-          <button class="btn-arch" onclick="document.getElementById('modal-root').innerHTML=''">Close ✕</button>
+    <div class="modal-backdrop" onclick="document.getElementById('modal-root').innerHTML=''">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div style="padding:0.9rem 1.25rem;border-bottom:var(--rule);display:flex;justify-content:space-between;align-items:center;background:var(--vellum);">
+          <strong style="font-family:var(--font-condensed);font-size:1.1rem;letter-spacing:0.04em;">MYNCARB ACCOUNT SYNC &amp; HOURS UPDATER</strong>
+          <button class="swiss-btn" style="padding:0.2rem 0.6rem;" onclick="document.getElementById('modal-root').innerHTML=''">✕</button>
         </div>
-        <div class="sheet-body" style="display:flex;flex-direction:column;gap:0.9rem;">
-          <input id="calc-expr" type="text" class="arch-input" style="font-family:var(--font-mono);font-size:1.1rem;" placeholder="e.g. 4200000 / 1400000" oninput="try{document.getElementById('calc-res').textContent='= '+Function('return ('+this.value.replace(/[^0-9+\\-*/().]/g,'')+')')()}catch{}" />
-          <div id="calc-res" style="padding:0.85rem;background:var(--bg-psi-chrome);color:#fff;font-family:var(--font-mono);font-size:1.25rem;font-weight:700;">= 0</div>
-          <div style="font-family:var(--font-mono);font-size:0.76rem;color:var(--ink-secondary);line-height:1.6;">
-            • <strong>Net Multiplier</strong> = Net Operating Revenue ÷ Direct Labor<br/>
-            • <strong>Overhead Rate</strong> = Total Indirect Expenses ÷ Direct Labor<br/>
-            • <strong>Break-Even Multiplier</strong> = 1.0 + Overhead Rate<br/>
-            • <strong>Max Gross Floor Area (GFA)</strong> = FAR × Total Lot Area<br/>
-            • <strong>Sabine Reverberation Time</strong>: RT60 = 0.049 × V ÷ A
+        <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.75rem;border:var(--rule);background:var(--vellum);">
+            <div style="font-size:0.82rem;">
+              <strong>1. Open MyNCARB Experience Portal</strong><br/>
+              <span style="color:var(--ink-muted);">Sign in at my.ncarb.org in a new tab, then update any newly approved hours below.</span>
+            </div>
+            <a href="${MYNCARB_EXP_URL}" target="_blank" rel="noopener" class="swiss-btn cobalt" style="white-space:nowrap;">SIGN IN AT MY.NCARB.ORG ↗</a>
+          </div>
+
+          <div style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;">
+            2. CURRENT SYNCED MYNCARB HOURS (INDIANA JURISDICTION):
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;">
+            ${db.axpData.areas.map(a => `
+              <div style="border:var(--rule);padding:0.55rem 0.75rem;background:var(--vellum);display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <strong style="font-size:0.82rem;">${a.code}</strong>
+                  <div style="font-size:0.72rem;color:var(--ink-muted);">Req: ${a.requiredHours}h</div>
+                </div>
+                <input id="sync-in-${a.code}" type="number" step="0.25" class="swiss-input" style="width:92px;font-family:var(--font-mono);font-weight:700;text-align:right;" value="${a.totalLogged}" />
+              </div>
+            `).join("")}
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:0.6rem;padding-top:0.5rem;border-top:var(--rule);">
+            <button class="swiss-btn" onclick="document.getElementById('modal-root').innerHTML=''">CANCEL</button>
+            <button class="swiss-btn terracotta" onclick="saveMyNcarbModalHours()">SAVE &amp; UPDATE DASHBOARD</button>
           </div>
         </div>
       </div>
@@ -1537,56 +892,100 @@ window.openCalculatorModal = function() {
   `;
 };
 
-window.openWhiteboardModal = function() {
-  const m = document.getElementById("modal-root");
-  m.innerHTML = `
-    <div class="arch-modal-backdrop" onclick="document.getElementById('modal-root').innerHTML=''">
-      <div class="arch-modal-window" onclick="event.stopPropagation()">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">SCRATCHPAD</span>
-            <h3 class="sheet-title">PSI Digital Whiteboard &amp; Calculation Pad</h3>
-          </div>
-          <button class="btn-arch" onclick="document.getElementById('modal-root').innerHTML=''">Close ✕</button>
-        </div>
-        <div class="sheet-body">
-          <textarea rows="8" class="arch-textarea" style="font-family:var(--font-mono);font-size:0.82rem;" placeholder="Use this digital scratchpad for CPM critical path float calculations, G702 retainage math, or zoning setback checks..."></textarea>
-        </div>
-      </div>
-    </div>
-  `;
+window.saveMyNcarbModalHours = function() {
+  db.axpData.areas.forEach(a => {
+    const el = document.getElementById(`sync-in-${a.code}`);
+    if (el) {
+      const val = parseFloat(el.value);
+      if (!isNaN(val)) {
+        a.totalLogged = val;
+        a.approvedSettingA = val;
+        a.remainingHours = Number((a.requiredHours - val).toFixed(2));
+      }
+    }
+  });
+  saveAxpToStorage();
+  document.getElementById("modal-root").innerHTML = "";
+  render();
 };
 
-window.openReferenceModal = function() {
-  const m = document.getElementById("modal-root");
-  m.innerHTML = `
-    <div class="arch-modal-backdrop" onclick="document.getElementById('modal-root').innerHTML=''">
-      <div class="arch-modal-window" onclick="event.stopPropagation()">
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-code">REF</span>
-            <h3 class="sheet-title">AIA Contract Documents &amp; IBC Quick Reference</h3>
+/* ==========================================================================
+   VIEW 4: CALM STUDY ARCHIVE (13 GOOGLE DRIVE PDFS + NATIONAL/REGIONAL STATS)
+   ========================================================================== */
+function renderCalmArchive(focusDiv) {
+  const reg = db.ncarbNewsAndRegional || {};
+  const jurisdictions = reg.midwestJurisdictions || [];
+  const st = jurisdictions.find(j => j.code === state.midwestState) || jurisdictions[0] || {};
+
+  return `
+    <div class="exam-split">
+      <section class="exam-left-pane" style="justify-content:flex-start;">
+        <div class="pane-heading">
+          <span>GOOGLE DRIVE STUDY ARCHIVE (${db.driveResources.length} PDFS)</span>
+          <a href="${DRIVE_FOLDER_URL}" target="_blank" rel="noopener" style="font-family:var(--font-mono);font-size:0.75rem;color:var(--terracotta);">OPEN DRIVE FOLDER ↗</a>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:0.65rem;">
+          ${db.driveResources.map(r => `
+            <div style="border-bottom:var(--rule-subtle);padding-bottom:0.65rem;display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+              <div>
+                <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--terracotta);font-weight:700;">
+                  ${esc(r.provider)} · ${esc(r.divisions.join(" · "))} · ${esc(r.size)}
+                </div>
+                <div style="font-size:0.92rem;font-weight:600;margin-top:0.1rem;">${esc(r.title)}</div>
+                <div style="font-size:0.78rem;color:var(--ink-muted);margin-top:0.1rem;">${esc(r.summary)}</div>
+              </div>
+              <a href="${esc(r.driveUrl)}" target="_blank" rel="noopener" class="swiss-btn" style="font-size:0.74rem;padding:0.3rem 0.7rem;white-space:nowrap;">OPEN PDF ↗</a>
+            </div>
+          `).join("")}
+        </div>
+      </section>
+
+      <aside class="exam-right-pane">
+        <div class="pane-heading">
+          <span>NATIONAL PASS RATES (NCARB BY THE NUMBERS)</span>
+        </div>
+
+        <table class="axp-clean-table">
+          <tbody>
+            ${db.divisions.map(d => `
+              <tr>
+                <td class="lbl"><strong>${d.code}</strong></td>
+                <td class="bar-cell">
+                  <div style="height:12px;background:var(--vellum-tab);">
+                    <div style="width:${d.passRates['2025']}%;height:100%;background:var(--cobalt);"></div>
+                  </div>
+                </td>
+                <td class="pct-cell">${d.passRates['2025']}%</td>
+                <td class="hrs-cell">1st: ${d.passRates.firstAttempt}%</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+
+        <div class="pane-heading" style="margin-top:0.75rem;">
+          <span>LICENSING BOARD &amp; PSI CENTERS</span>
+          <select class="swiss-select" style="width:auto;padding:0.2rem 0.5rem;font-size:0.74rem;" onchange="state.midwestState=this.value;render()">
+            ${jurisdictions.map(j => `<option value="${j.code}" ${j.code === state.midwestState ? 'selected' : ''}>${esc(j.code)} — ${esc(j.state.split(' ')[0])}</option>`).join("")}
+          </select>
+        </div>
+
+        <div style="border:var(--rule);padding:0.95rem;background:var(--vellum);font-size:0.82rem;line-height:1.55;">
+          <div><strong>${esc(st.state)}</strong> (Pass Avg: <strong>${st.overallPassRate || 58}%</strong>)</div>
+          <p style="margin:0.35rem 0;color:var(--ink-muted);">${esc(st.boardRules)}</p>
+          <div style="font-family:var(--font-mono);font-size:0.74rem;">
+            <strong>PSI Centers:</strong> ${esc((st.psiCenters || []).join(" · "))}
           </div>
-          <button class="btn-arch" onclick="document.getElementById('modal-root').innerHTML=''">Close ✕</button>
         </div>
-        <div class="sheet-body" style="font-family:var(--font-mono);font-size:0.78rem;line-height:1.65;">
-          <div><strong>AIA B101:</strong> Owner–Architect Agreement (Article 5: Owner furnishes survey &amp; geotech)</div>
-          <div><strong>AIA A201:</strong> General Conditions of the Contract for Construction (§ 3.12 Shop Drawings)</div>
-          <div><strong>AIA C401:</strong> Architect–Consultant Agreement (Structural, MEP, Civil)</div>
-          <div><strong>AIA G701:</strong> Change Order (Requires Owner + Architect + Contractor signatures)</div>
-          <div><strong>AIA G710:</strong> Architect's Supplemental Instructions (Minor clarification, NO cost/time change; Architect signs alone)</div>
-          <div><strong>AIA G714:</strong> Construction Change Directive (Owner + Architect sign when cost/time is disputed)</div>
-        </div>
-      </div>
+      </aside>
     </div>
   `;
-};
+}
 
 if (window.__ATELIER_DB__) {
-  initData(window.__ATELIER_DB__);
+  initPortal();
 } else {
   fetch("data/portal_db.json")
     .then(r => r.json())
-    .then(d => initData(d))
-    .catch(() => {});
+    .then(d => { db = d; initPortal(); });
 }
