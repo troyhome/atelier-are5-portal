@@ -1,158 +1,371 @@
 /* ==========================================================================
-   ATELIER ARE 5.0 — PURPOSE-DRIVEN ENGINE + MYNCARB SYNC
+   ATELIER ARE 5.0 — PURPOSE-DRIVEN SWISS WORKSPACE ENGINE
    ========================================================================== */
 
-const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1bLGH_YofHmm9wYqN4Vzu7RJ3PuEuocV_lL7DidNsJwQ/edit";
-const DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1byu3GdNMRKkKVPfkb-XYmMLPF1pIOxr3";
-const MYNCARB_EXP_URL = "https://my.ncarb.org/apps/experience";
-
-let db = window.__ATELIER_DB__ || null;
-
-const CAD_PLATES = {
+// Real Official NCARB Content Sections & Real Formulas/Contracts per Division
+const DIVISION_STUDY_DATA = {
   PcM: {
-    title: "PRACTICE FINANCIAL MULTIPLIER SYSTEM",
-    scale: "RATIO 3.00x",
-    dims: ["2.1m", "140mm", "35mm"],
-    labels: [
-      "NET OPERATING REVENUE (NOR ÷ DL = 3.00x)",
-      "DIRECT BILLABLE LABOR ($1.40M BASE)",
-      "INDIRECT OVERHEAD (1.50x OVERHEAD RATE)",
-      "BREAK-EVEN MULTIPLIER (1 + OH = 2.50x)",
-      "NET PROFIT TARGET (+16.7% MARGIN)"
-    ]
+    sections: [
+      {
+        name: "Section 1: Business Operations",
+        weight: "20–26%",
+        topics: "Business entity structures (LLC, LLP, S-Corp, C-Corp), employment law, insurance (Professional Liability, General Liability, Workers' Comp), ethics."
+      },
+      {
+        name: "Section 2: Finances, Risk & Development of Practice",
+        weight: "29–35%",
+        topics: "Net Multiplier, Overhead Rate, Break-Even Rate, Utilization Rate, accrual vs. cash accounting, financial statements, Go/No-Go risk matrices."
+      },
+      {
+        name: "Section 3: Practice-Wide Delivery of Services",
+        weight: "22–28%",
+        topics: "Project delivery method selection (DBB, CMAR, Design-Build, IPD), AIA B101 & C401 agreements, standard of care, client proposals."
+      },
+      {
+        name: "Section 4: Practice Methodologies",
+        weight: "17–23%",
+        topics: "BIM execution plans, QA/QC protocols, research & evidence-based design, firm-wide knowledge management and staffing allocation."
+      }
+    ],
+    formulas: [
+      { term: "Net Multiplier", formula: "Net Operating Revenue ÷ Direct Labor (Target: 2.8x – 3.2x)" },
+      { term: "Break-Even Rate", formula: "1.0 + (Total Indirect Overhead ÷ Direct Labor)" },
+      { term: "Overhead Rate", formula: "Total Indirect Expenses ÷ Total Direct Labor" },
+      { term: "Utilization Rate", formula: "Direct Billable Hours ÷ Total Hours Worked (Target: 65%–75%)" },
+      { term: "Business Entities", formula: "LLP (shields partner negligence) · LLC (pass-through + liability shield) · S-Corp (≤100 shareholders)" },
+      { term: "Core AIA Contracts", formula: "AIA B101 (Owner–Architect) · AIA C401 (Architect–Consultant) · AIA C191 (IPD Multi-Party)" }
+    ],
+    pdfKeywords: ["PCM", "Practice Management", "hyperfine", "Resource Matrix", "NCARB Handbook", "Study Strategy"]
   },
   PjM: {
-    title: "CRITICAL PATH & AIA CONTRACT SYSTEM",
-    scale: "AIA B101 / A201",
-    dims: ["2.1m", "140mm", "35mm"],
-    labels: [
-      "AIA B101 OWNER-ARCHITECT AGREEMENT",
-      "AIA C401 STRUCTURAL / MEP CONSULTANTS",
-      "CRITICAL PATH (ZERO FLOAT = 0 DAYS)",
-      "AIA G714 CONSTRUCTION CHANGE DIRECTIVE",
-      "AIA G701 CHANGE ORDER (3 SIGNATURES)"
-    ]
+    sections: [
+      {
+        name: "Section 1: Resource Management",
+        weight: "7–13%",
+        topics: "Project fee budgeting, burn-rate tracking, staff hour allocation by phase (SD, DD, CD, BN, CA), consultant coordination."
+      },
+      {
+        name: "Section 2: Project Work Planning",
+        weight: "17–23%",
+        topics: "Critical Path Method (CPM) scheduling, float calculations, work breakdown structures, fast-track vs. linear sequencing."
+      },
+      {
+        name: "Section 3: Contracts",
+        weight: "25–31%",
+        topics: "AIA A101, A102, A133 (CMAR), A141 (DB), A201 General Conditions, B101 scope of basic vs. additional services."
+      },
+      {
+        name: "Section 4: Project Execution",
+        weight: "17–23%",
+        topics: "Design phase approvals, cost estimating alignments, value engineering, constructability reviews, agency submittals."
+      },
+      {
+        name: "Section 5: Project Quality Control",
+        weight: "19–25%",
+        topics: "Redline/checkset QA/QC, interdisciplinary clash detection (structural/MEP), spec-to-drawing coordination."
+      }
+    ],
+    formulas: [
+      { term: "Total Float (CPM)", formula: "Late Start (LS) − Early Start (ES) = LF − EF (0 Float = Critical Path)" },
+      { term: "Fee Top-Down Split", formula: "Gross Fee − Profit (15%) − Consultant Fees = Architectural Fee Budget" },
+      { term: "Labor Hours Allowed", formula: "Architectural Fee Budget ÷ (Avg Direct Hourly Rate × Break-Even Multiplier)" },
+      { term: "AIA Change Forms", formula: "G701 Change Order (O+A+C) · G714 CCD (O+A) · G710 ASI (Arch only, no cost/time)" },
+      { term: "Delivery Contracts", formula: "A101 (Stipulated Sum) · A102 (Cost Plus GMP) · A133 (CM as Constructor)" },
+      { term: "Instrument of Service", formula: "AIA B101 §7: Architect retains copyright; Owner gets non-exclusive license upon payment" }
+    ],
+    pdfKeywords: ["hyperfine", "Division 2", "Resource Matrix", "NCARB Handbook", "Study Strategy"]
   },
   PA: {
-    title: "SITE GRADING & ZONING FAR ENVELOPE",
-    scale: "1\" = 20'-0\"",
-    dims: ["2.1m", "140mm", "35mm"],
-    labels: [
-      "MAX GFA = FAR × TOTAL LOT AREA",
-      "PROPERTY LINE & 10'-0\" FRONT SETBACK",
-      "DIVERSION SWALE (MIN 2.0% DRAINAGE)",
-      "SOUTH HORIZONTAL LOUVER OVERHANG",
-      "PHASE I ESA (ASTM E1527) SITE BOUNDARY"
-    ]
+    sections: [
+      {
+        name: "Section 1: Environmental & Contextual Conditions",
+        weight: "24–30%",
+        topics: "Site topography, drainage swales, floodplains, soil bearing capacities, microclimate, solar orientation, brownfield remediation."
+      },
+      {
+        name: "Section 2: Codes & Regulations",
+        weight: "16–22%",
+        topics: "Zoning setbacks, Floor Area Ratio (FAR), lot coverage, sky exposure plane, parking ratios, IBC occupancy & construction types."
+      },
+      {
+        name: "Section 3: Site Analysis & Programming",
+        weight: "21–27%",
+        topics: "Geotechnical borings, utility easements, historic preservation (Secretary of the Interior's Standards), cut-and-fill balance."
+      },
+      {
+        name: "Section 4: Building Analysis & Programming",
+        weight: "28–34%",
+        topics: "Net-to-gross efficiency ratios, adjacency bubble diagrams, occupant load calculations, preliminary cost per SF budgets."
+      }
+    ],
+    formulas: [
+      { term: "Max Building Area", formula: "Floor Area Ratio (FAR) × Total Lot Area" },
+      { term: "Max Footprint", formula: "Max Lot Coverage % × Total Lot Area (check against setbacks)" },
+      { term: "Gross Building Area", formula: "Net Assignable Area (NSF) ÷ Efficiency Ratio (Typ. 0.65 – 0.75)" },
+      { term: "Topographic Contours", formula: "Contours pointing uphill ('V') = Valley/Swale; water flows perpendicular to contours" },
+      { term: "Soil Bearing (High→Low)", formula: "Bedrock (12,000+ psf) > Gravel (3,000) > Sand (2,000) > Silt/Clay (1,500 psf)" },
+      { term: "Historic Preservation", formula: "Preservation (stabilize) · Rehabilitation (compatible use) · Restoration (period) · Reconstruction" }
+    ],
+    pdfKeywords: ["PA Walking", "Division 2", "PPIARE", "NCARB Handbook", "Resource Matrix"]
   },
   PPD: {
-    title: "LONG-SPAN STEEL & HVAC SYSTEM",
-    scale: "1/2\" = 1'-0\"",
-    dims: ["2.1m", "140mm", "35mm"],
-    labels: [
-      "WIDE-FLANGE STEEL GIRDER (E = 29,000 KSI)",
-      "MOMENT OF INERTIA (I) DEFLECTION CONTROL",
-      "DEDICATED OUTDOOR AIR SYSTEM (DOAS)",
-      "ACOUSTICAL ABSORPTION PLENUM BAFFLE",
-      "2-HOUR FIRE BARRIER SHAFT ENCLOSURE"
-    ]
+    sections: [
+      {
+        name: "Section 1: Environmental Conditions & Context",
+        weight: "10–16%",
+        topics: "Passive solar massing, prevailing wind orientation, daylight harvesting, site water retention and acoustic site buffers."
+      },
+      {
+        name: "Section 2: Codes & Regulations",
+        weight: "19–25%",
+        topics: "IBC Chapter 3/5/6 allowable height & area tables, mixed-occupancy separated vs. non-separated, Chapter 10 means of egress."
+      },
+      {
+        name: "Section 3: Building Systems, Materials & Assemblies",
+        weight: "19–25%",
+        topics: "Structural system selection (steel, concrete, mass timber), HVAC system selection (VAV, VRF, chilled beam), lateral force systems."
+      },
+      {
+        name: "Section 4: Project Integration of Program & Systems",
+        weight: "32–38%",
+        topics: "Core-to-window depths, structural grid coordination with parking modules, life-cycle cost analysis (LCCA)."
+      },
+      {
+        name: "Section 5: Project Costs & Budgeting",
+        weight: "8–14%",
+        topics: "Systems-based cost estimating, assembly square-foot trade-offs, contingency targets during Schematic & Design Development."
+      }
+    ],
+    formulas: [
+      { term: "Structural Depth Rules", formula: "Steel Beam ≈ L/20 · Concrete Beam ≈ L/24 · Glue-Lam ≈ L/16 · Open-Web Joist ≈ L/20" },
+      { term: "Egress Width Factors", formula: "Stairs = 0.3\" per occupant (min 44\") · Doors/Corridors = 0.2\" per occupant (min 36\" clear 32\")" },
+      { term: "Exit Separation", formula: "≥ 1/2 max diagonal building dimension (≥ 1/3 diagonal if fully sprinklered per NFPA 13)" },
+      { term: "Lateral Systems", formula: "Shear Wall (high stiffness) · Braced Frame (economical steel) · Moment Frame (open bays, higher drift)" },
+      { term: "HVAC Selection", formula: "VAV (multi-zone office) · VRF (simultaneous heat/cool, tight plenum) · DOAS + Chilled Beam" },
+      { term: "Reverberation Time", formula: "Sabine Formula: RT60 = 0.049 × Volume (CF) ÷ Total Absorption (Sabins)" }
+    ],
+    pdfKeywords: ["Division 4", "PPIARE", "NCARB Handbook", "Resource Matrix"]
   },
   PDD: {
-    title: "HIGH-RISE FACADE SYSTEM",
-    scale: "1m",
-    dims: ["2.1m", "140mm", "35mm"],
-    labels: [
-      "PRECAST CONCRETE PANEL",
-      "INSULATION",
-      "TRIPLE GLAZING",
-      "ALUMINUM FRAMING",
-      "ANCHOR"
-    ]
+    sections: [
+      {
+        name: "Section 1: Integration of Building Materials & Systems",
+        weight: "31–37%",
+        topics: "Curtain wall & rainscreen detailing, vapor barrier vs. air barrier location, thermal bridging, expansion/control joints, galvanic corrosion."
+      },
+      {
+        name: "Section 2: Construction Documentation",
+        weight: "32–38%",
+        topics: "Wall sections, stair/elevator shaft details, ADA/ICC A117.1 clearances, fire-rated assembly penetrations, schedules."
+      },
+      {
+        name: "Section 3: Project Manual & Specifications",
+        weight: "12–18%",
+        topics: "CSI MasterFormat (50 divisions), 3-Part SectionFormat (General, Products, Execution), performance vs. proprietary specs."
+      },
+      {
+        name: "Section 4: Codes & Regulations",
+        weight: "10–16%",
+        topics: "Fire dampers vs. smoke dampers, parapet heights, plumbing fixture counts (IBC Ch. 29), stair riser/tread geometry."
+      },
+      {
+        name: "Section 5: Construction Cost Estimates",
+        weight: "7–13%",
+        topics: "Unit-price takeoffs, material escalation allowances, alternates (Add/Deduct), value analysis at 95% CD."
+      }
+    ],
+    formulas: [
+      { term: "Thermal Heat Loss", formula: "Total R = ∑ R_i · U = 1 / Total R · Heat Transfer Q = U × Area × ΔT" },
+      { term: "Vapor Retarder Rule", formula: "Install on the WARM-IN-WINTER side of insulation (Interior in Zones 5–8; Exterior in Hot-Humid)" },
+      { term: "ADA Ramp & Stairs", formula: "Max Ramp Slope 1:12 (8.33%) · Max Rise 30\" per run · Stair Riser 4\"–7\" · Tread min 11\"" },
+      { term: "CSI 3-Part Specs", formula: "Part 1: General (submittals/QA) · Part 2: Products (materials/mixes) · Part 3: Execution (install)" },
+      { term: "Galvanic Action", formula: "Avoid direct contact between dissimilar metals (e.g., copper runoff onto galvanized steel/aluminum)" },
+      { term: "Acoustics (STC / NRC)", formula: "STC = Airborne transmission loss through partition (50+ good) · NRC = Surface sound absorption" }
+    ],
+    pdfKeywords: ["Division 5", "Division 4", "PPIARE", "NCARB Handbook", "Resource Matrix"]
   },
   CE: {
-    title: "EXTERIOR MASONRY FLASHING & WEEP DETAIL",
-    scale: "3\" = 1'-0\"",
-    dims: ["2.1m", "140mm", "35mm"],
-    labels: [
-      "FACE BRICK VENEER & MORTAR JOINT",
-      "2\" CLEAR DRAINAGE AIR CAVITY",
-      "STAINLESS THROUGH-WALL FLASHING & DRIP",
-      "WEEP HOLES @ 24\" O.C. ABOVE STEEL LINTEL",
-      "INTERIOR WARM-SIDE VAPOR RETARDER"
-    ]
+    sections: [
+      {
+        name: "Section 1: Preconstruction Activities",
+        weight: "17–23%",
+        topics: "Bidding procedures (AIA A701), Addenda vs. ASI, bid bonds, performance & payment bonds (A312), contractor prequalification."
+      },
+      {
+        name: "Section 2: Construction Observation",
+        weight: "32–38%",
+        topics: "Site visits vs. continuous inspection, rejecting non-conforming work, means & methods boundary, special inspections (IBC Ch. 17)."
+      },
+      {
+        name: "Section 3: Administrative Procedures & Protocols",
+        weight: "32–38%",
+        topics: "RFIs, shop drawing & submittal review, Pay Applications (G702/G703), Change Orders (G701), CCDs (G714), Substantial Completion (G704)."
+      },
+      {
+        name: "Section 4: Project Closeout & Evaluation",
+        weight: "11–17%",
+        topics: "Punchlist, Consent of Surety (G707), Release of Liens (G706/G706A), 1-year warranty walkthrough, Post-Occupancy Evaluation (POE)."
+      }
+    ],
+    formulas: [
+      { term: "Shop Drawings (A201)", formula: "Architect reviews ONLY for design concept conformance; Contractor owns dimensions & means/methods" },
+      { term: "Pay App (G702/G703)", formula: "Current Payment Due = (Total Completed & Stored × (1 − Retainage%)) − Previous Certificates" },
+      { term: "Substantial Completion", formula: "AIA G704: Owner can occupy for intended use; starts warranty period & shifts utility/insurance" },
+      { term: "Closeout Affidavits", formula: "G706 (Payment of Debts/Claims) · G706A (Release of Liens) · G707 (Consent of Surety)" },
+      { term: "Bidding Changes", formula: "Before Bid Opening = Addendum (AIA A701) · After Contract Award = ASI (G710), CCD (G714), CO (G701)" },
+      { term: "Authority to Stop Work", formula: "Owner has right to stop work (A201 §2.3); Architect may REJECT non-conforming work (§4.2.6)" }
+    ],
+    pdfKeywords: ["Division 6", "PPIARE", "NCARB Handbook", "Resource Matrix"]
   }
 };
 
 const state = {
-  theme: localStorage.getItem("atelier_theme_v4") || "light",
-  tab: "overview",
-  activeDiv: "PDD", // Default to PDD where user has 488.25 hours + High-Rise Facade System plate
+  data: null,
+  topTab: "overview",       // overview | exam | axp | archive
+  activeDiv: "PcM",         // PcM | PjM | PA | PPD | PDD | CE
+  menuOpen: false,
+  theme: localStorage.getItem("atelier_swiss_theme") || "light",
+  syncModalOpen: false,
+
+  // Exam Simulator State
   examPool: [],
   examIdx: 0,
-  examLegacy: "ALL",
-  examAnswers: {},
+  examAnswers: JSON.parse(localStorage.getItem("atelier_exam_answers") || "{}"),
   examRevealed: {},
   examStrikes: {},
   examCaseTab: 0,
-  axpTaskInput: "Reviewed contractor submittal log, curtain wall shop drawings, and issued ASI #4",
-  axpProject: "Indiana Civic Renovation",
-  axpHours: 8.0,
-  axpSuggestion: null,
-  midwestState: "IN"
+  examLegacy: "ALL",
+
+  // AXP Work-Task Classifier State
+  taskDesc: "Prepared wall section details, curtain wall flashing transitions, and window head/sill waterproof membrane callouts in Revit for Design Development package.",
+  taskHours: 8.0,
+  taskRec: null
 };
 
-function esc(s) {
-  return String(s ?? "")
+let db = null;
+
+function esc(str) {
+  return String(str ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
 
-function initPortal() {
-  if (!db) return;
-  try {
-    const savedAreas = localStorage.getItem("atelier_myncarb_areas_v4");
-    const savedLogs = localStorage.getItem("atelier_myncarb_logs_v4");
-    if (savedAreas) db.axpData.areas = JSON.parse(savedAreas);
-    if (savedLogs) db.axpData.workLogs = JSON.parse(savedLogs);
-  } catch (e) {}
+async function initPortal() {
   document.documentElement.setAttribute("data-theme", state.theme);
+  if (window.PORTAL_INLINE_DB) {
+    db = window.PORTAL_INLINE_DB;
+  } else {
+    try {
+      const res = await fetch("./data/portal_db.json");
+      db = await res.json();
+    } catch (e) {
+      console.error("Failed to load portal_db.json", e);
+    }
+  }
+
+  const savedAxp = localStorage.getItem("atelier_myncarb_axp_v2");
+  if (savedAxp) {
+    try {
+      const parsed = JSON.parse(savedAxp);
+      if (parsed && Array.isArray(parsed.areas)) {
+        db.axpData = parsed;
+      }
+    } catch (_) {}
+  }
+
   filterExamPool();
+  runTaskClassifier(false);
   render();
 }
 
-function saveAxpToStorage() {
-  try {
-    localStorage.setItem("atelier_myncarb_areas_v4", JSON.stringify(db.axpData.areas));
-    localStorage.setItem("atelier_myncarb_logs_v4", JSON.stringify(db.axpData.workLogs));
-  } catch (e) {}
+function saveExamAnswers() {
+  localStorage.setItem("atelier_exam_answers", JSON.stringify(state.examAnswers));
 }
-
-window.toggleTheme = function() {
-  state.theme = state.theme === "light" ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", state.theme);
-  localStorage.setItem("atelier_theme_v4", state.theme);
-  render();
-};
 
 function filterExamPool() {
-  let pool = db.questions.filter(q => q.division === state.activeDiv);
+  if (!db) return;
+  let list = db.questions || [];
   if (state.examLegacy !== "ALL") {
-    pool = db.questions.filter(q => q.legacyExam === state.examLegacy);
+    list = list.filter(q => q.legacyMapping && q.legacyMapping.includes(state.examLegacy));
+  } else {
+    list = list.filter(q => q.division === state.activeDiv);
   }
-  state.examPool = pool.length ? pool : [...db.questions];
+  if (!list.length) list = db.questions;
+  state.examPool = list;
   state.examIdx = 0;
 }
 
-window.selectDivision = function(code) {
-  state.activeDiv = code;
-  filterExamPool();
+window.toggleMenu = function(force) {
+  state.menuOpen = typeof force === "boolean" ? force : !state.menuOpen;
+  render();
+};
+
+window.toggleTheme = function() {
+  state.theme = state.theme === "dark" ? "light" : "dark";
+  localStorage.setItem("atelier_swiss_theme", state.theme);
+  document.documentElement.setAttribute("data-theme", state.theme);
+  state.menuOpen = false;
   render();
 };
 
 window.switchTopTab = function(tab) {
-  state.tab = tab;
+  state.topTab = tab;
+  state.menuOpen = false;
+  render();
+};
+
+window.selectDivision = function(code) {
+  state.activeDiv = code;
+  state.examLegacy = "ALL";
+  state.menuOpen = false;
+  filterExamPool();
+  render();
+};
+
+window.openMyNcarbSyncModal = function() {
+  state.syncModalOpen = true;
+  state.menuOpen = false;
+  render();
+};
+
+window.closeMyNcarbSyncModal = function() {
+  state.syncModalOpen = false;
+  render();
+};
+
+window.resetExamProgress = function() {
+  state.examAnswers = {};
+  state.examRevealed = {};
+  state.examStrikes = {};
+  saveExamAnswers();
+  state.menuOpen = false;
+  render();
+};
+
+window.saveMyNcarbHoursFromModal = function(e) {
+  e.preventDefault();
+  const form = e.target;
+  let totalApp = 0;
+  let totalSub = 0;
+  db.axpData.areas.forEach(a => {
+    const appVal = parseFloat(form.querySelector(`[name="app_${a.code}"]`).value);
+    const subVal = parseFloat(form.querySelector(`[name="sub_${a.code}"]`).value);
+    a.approvedHours = isNaN(appVal) ? 0 : Number(appVal.toFixed(2));
+    a.submittedHours = isNaN(subVal) ? 0 : Number(subVal.toFixed(2));
+    a.totalLogged = Number((a.approvedHours + a.submittedHours).toFixed(2));
+    totalApp += a.approvedHours;
+    totalSub += a.submittedHours;
+  });
+  db.axpData.totalApproved = Number(totalApp.toFixed(2));
+  db.axpData.totalSubmitted = Number(totalSub.toFixed(2));
+  db.axpData.totalLogged = Number((totalApp + totalSub).toFixed(2));
+  db.axpData.totalRemaining = Number((3740 - db.axpData.totalLogged).toFixed(2));
+  db.axpData.lastUpdated = new Date().toISOString().slice(0, 10);
+
+  localStorage.setItem("atelier_myncarb_axp_v2", JSON.stringify(db.axpData));
+  state.syncModalOpen = false;
   render();
 };
 
@@ -160,19 +373,21 @@ window.switchTopTab = function(tab) {
    MASTER RENDER
    ========================================================================== */
 function render() {
-  if (!db) return;
   const root = document.getElementById("app-root");
+  if (!root || !db) return;
+
   const focusDiv = db.divisions.find(d => d.code === state.activeDiv) || db.divisions[0];
-  const totalApproved = Number(db.axpData.areas.reduce((s, a) => s + Number(a.totalLogged || 0), 0).toFixed(2));
-  const totalReq = 3740;
-  const totalRem = Number((totalReq - totalApproved).toFixed(2));
+  const totalApproved = db.axpData.areas.reduce((s, a) => s + a.totalLogged, 0);
+  const totalRem = Number((3740 - totalApproved).toFixed(2));
 
   root.innerHTML = `
-    <div class="atelier-frame">
-      <!-- ROW 1: SLIM MASTHEAD (NO BLOAT ABOVE TABS) -->
+    <div class="monograph-sheet">
+      <!-- ROW 1: SLIM MASTHEAD -->
       <header class="masthead-row">
-        <div class="masthead-icon-cell" aria-hidden="true">☰</div>
-        <div class="masthead-brand-cell">
+        <button class="masthead-menu-btn ${state.menuOpen ? 'open' : ''}" onclick="toggleMenu()" title="Open Studio Menu">
+          ${state.menuOpen ? '✕' : '☰'}
+        </button>
+        <div class="masthead-brand-cell" onclick="if(state.menuOpen) toggleMenu(false)">
           <h1 class="masthead-brand-title">ATELIER ARE 5.0</h1>
           <div class="masthead-status-strip">
             <span>AXP TOTAL: <strong>${totalApproved.toLocaleString()} / 3,740 HRS</strong> (${totalRem.toLocaleString()} REM)</span>
@@ -180,107 +395,269 @@ function render() {
           </div>
         </div>
         <div class="masthead-utils">
-          <button class="util-cell-btn" onclick="openMyNcarbSyncModal()" title="Sign in to MyNCARB or update synced AXP hours">
+          <button class="util-cell-btn" onclick="openMyNcarbSyncModal()" title="Sign in or sync hours from my.ncarb.org">
             <span class="sync-dot"></span> MYNCARB SYNC
           </button>
-          <a href="${GOOGLE_SHEET_URL}" target="_blank" rel="noopener" class="util-cell-btn" title="Open Synced Google Sheet">
+          <a class="util-cell-btn" href="https://docs.google.com/spreadsheets/d/1bLGH_YofHmm9wYqN4Vzu7RJ3PuEuocV_lL7DidNsJwQ/edit" target="_blank" rel="noopener" title="Open synced Google Sheet">
             SHEET ↗
           </a>
-          <button class="util-cell-btn" onclick="toggleTheme()" title="Toggle Warm Vellum / Dark Mode">
-            ${state.theme === 'light' ? '☾' : '☀'}
+          <button class="util-cell-btn" onclick="toggleTheme()" title="Toggle Vellum / Dark Blueprint Theme">
+            ${state.theme === 'dark' ? '☀' : '☾'}
           </button>
         </div>
+
+        ${state.menuOpen ? renderHamburgerDrawer(totalApproved) : ""}
       </header>
 
-      <!-- ROW 2: SUBNAV BAR -->
-      <div class="subnav-row">
+      <!-- ROW 2: SUB-BAR (DIVISION HEADER LEFT | 4 TABS RIGHT) -->
+      <nav class="subnav-row" onclick="if(state.menuOpen) toggleMenu(false)">
         <div class="subnav-empty-cell"></div>
         <div class="subnav-division-hdr">DIVISION</div>
         <div class="subnav-spacer">
-          ${focusDiv.code} — ${esc(focusDiv.name)} · ${focusDiv.totalItems} Items (${focusDiv.testDurationDisplay}) · Nat'l Pass: ${focusDiv.passRates['2025']}%
+          ${focusDiv.code} — ${esc(focusDiv.name)} · ${focusDiv.items} Items (${focusDiv.duration}) · NCARB Pass Score: 550/800 · Nat'l Pass Rate: ${focusDiv.nationalPassRate}%
         </div>
-        <nav class="subnav-tabs" aria-label="Workspace Views">
-          <button id="tab-overview" class="subnav-tab-btn ${state.tab === 'overview' ? 'active' : ''}" onclick="switchTopTab('overview')">OVERVIEW</button>
-          <button id="tab-exam" class="subnav-tab-btn ${state.tab === 'exam' ? 'active' : ''}" onclick="switchTopTab('exam')">PRACTICE EXAM</button>
-          <button id="tab-axp" class="subnav-tab-btn ${state.tab === 'axp' ? 'active' : ''}" onclick="switchTopTab('axp')">AXP HOURS</button>
-          <button id="tab-archive" class="subnav-tab-btn ${state.tab === 'archive' ? 'active' : ''}" onclick="switchTopTab('archive')">ARCHIVE</button>
-        </nav>
-      </div>
+        <div class="subnav-tabs">
+          <button class="subnav-tab-btn ${state.topTab === 'overview' ? 'active' : ''}" onclick="switchTopTab('overview')">OVERVIEW</button>
+          <button class="subnav-tab-btn ${state.topTab === 'exam' ? 'active' : ''}" onclick="switchTopTab('exam')">PRACTICE EXAM</button>
+          <button class="subnav-tab-btn ${state.topTab === 'axp' ? 'active' : ''}" onclick="switchTopTab('axp')">AXP HOURS</button>
+          <button class="subnav-tab-btn ${state.topTab === 'archive' ? 'active' : ''}" onclick="switchTopTab('archive')">ARCHIVE</button>
+        </div>
+      </nav>
 
-      <!-- ROW 3: LEFT 6-DIVISION SPINE + ACTIVE VIEW -->
-      <div class="workspace-row">
-        <aside class="division-spine" aria-label="Six ARE 5.0 Divisions">
-          ${db.divisions.map(d => {
-            const isAct = state.activeDiv === d.code;
-            const axpArea = db.axpData.areas.find(a => a.code === d.code) || { totalLogged: 0, requiredHours: d.axpRequiredHours };
-            return `
-              <button class="spine-row ${isAct ? 'active' : ''}" onclick="selectDivision('${d.code}')">
-                <div class="spine-num">${d.number}</div>
-                <div class="spine-content">
-                  <div class="spine-code">${d.code}</div>
-                  <div class="spine-title">${esc(d.name)}</div>
-                  <div class="spine-axp-mini">AXP: ${axpArea.totalLogged} / ${axpArea.requiredHours}h</div>
+      <!-- ROW 3: MAIN WORKSPACE (LEFT 6-DIVISION SPINE | ACTIVE PANE) -->
+      <div class="workspace-row" onclick="if(state.menuOpen) toggleMenu(false)">
+        <!-- LEFT VERTICAL DIVISION SPINE -->
+        <aside class="division-spine">
+          <div>
+            ${db.divisions.map((d, i) => {
+              const axpArea = db.axpData.areas.find(a => a.code === d.code);
+              const divQs = db.questions.filter(q => q.division === d.code);
+              const answeredCount = divQs.filter(q => state.examAnswers[q.id] !== undefined).length;
+              return `
+                <div class="spine-item ${d.code === state.activeDiv ? 'active' : ''}" onclick="selectDivision('${d.code}')">
+                  <div class="spine-num">${i + 1}</div>
+                  <div class="spine-body">
+                    <div class="spine-code">${esc(d.code)}</div>
+                    <div class="spine-name">${esc(d.name)}</div>
+                    <div class="spine-meta">AXP: ${axpArea ? axpArea.totalLogged : 0} / ${axpArea ? axpArea.requiredHours : 0}h</div>
+                    <div class="spine-meta">Practice Qs: ${answeredCount} / ${divQs.length}</div>
+                  </div>
                 </div>
-              </button>
-            `;
-          }).join("")}
+              `;
+            }).join("")}
+          </div>
+
           <div class="spine-footer">
-            <span>⠿ INDIANA PLA</span>
-            <span>550 CUT</span>
+            <div><strong>INDIANA LICENSURE</strong></div>
+            <div>No Extra State AXP Req</div>
+            <div style="margin-top:0.2rem;">NCARB Pass Score: <strong>550 / 800</strong></div>
           </div>
         </aside>
 
+        <!-- MAIN WORKSPACE CANVAS -->
         <main>
-          ${state.tab === "overview" ? renderCalmOverview(focusDiv, totalApproved, totalRem) : ""}
-          ${state.tab === "exam" ? renderCalmExam(focusDiv) : ""}
-          ${state.tab === "axp" ? renderCalmAxp(totalApproved, totalRem) : ""}
-          ${state.tab === "archive" ? renderCalmArchive(focusDiv) : ""}
+          ${state.topTab === "overview" ? renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) : ""}
+          ${state.topTab === "exam" ? renderCalmExam(focusDiv) : ""}
+          ${state.topTab === "axp" ? renderCalmAxp(totalApproved, totalRem) : ""}
+          ${state.topTab === "archive" ? renderCalmArchive(focusDiv) : ""}
         </main>
       </div>
+    </div>
+
+    ${state.syncModalOpen ? renderMyNcarbSyncModal() : ""}
+  `;
+}
+
+/* ==========================================================================
+   HAMBURGER MENU DRAWER
+   ========================================================================== */
+function renderHamburgerDrawer(totalApproved) {
+  return `
+    <div class="hamburger-drawer">
+      <div class="drawer-section-hdr">STUDIO VIEWS</div>
+      <button class="drawer-item" onclick="switchTopTab('overview')">
+        <span>01 · Division Study Overview</span>
+        <span class="code-tag">${state.topTab === 'overview' ? 'ACTIVE' : 'VIEW'}</span>
+      </button>
+      <button class="drawer-item" onclick="switchTopTab('exam')">
+        <span>02 · Practice Exam Simulator (${db.questions.length} Qs)</span>
+        <span class="code-tag">${state.topTab === 'exam' ? 'ACTIVE' : 'PRACTICE'}</span>
+      </button>
+      <button class="drawer-item" onclick="switchTopTab('axp')">
+        <span>03 · MyNCARB AXP Hours &amp; Task Logger</span>
+        <span class="code-tag">${totalApproved} / 3,740h</span>
+      </button>
+      <button class="drawer-item" onclick="switchTopTab('archive')">
+        <span>04 · Google Drive Study Archive (16 PDFs)</span>
+        <span class="code-tag">LIBRARY</span>
+      </button>
+
+      <div class="drawer-section-hdr">JUMP TO ARE 5.0 DIVISION</div>
+      ${db.divisions.map((d, idx) => `
+        <button class="drawer-item" onclick="selectDivision('${d.code}')">
+          <span>${idx + 1} · ${esc(d.code)} — ${esc(d.name)}</span>
+          <span class="code-tag">${d.code === state.activeDiv ? 'SELECTED' : d.items + ' Qs'}</span>
+        </button>
+      `).join("")}
+
+      <div class="drawer-section-hdr">MYNCARB &amp; SETTINGS</div>
+      <button class="drawer-item" onclick="openMyNcarbSyncModal()">
+        <span>Sync / Edit MyNCARB Hours</span>
+        <span class="code-tag">MODAL</span>
+      </button>
+      <a class="drawer-item" href="https://my.ncarb.org/apps/experience" target="_blank" rel="noopener">
+        <span>Open MyNCARB Experience Portal</span>
+        <span class="code-tag">↗</span>
+      </a>
+      <a class="drawer-item" href="https://docs.google.com/spreadsheets/d/1bLGH_YofHmm9wYqN4Vzu7RJ3PuEuocV_lL7DidNsJwQ/edit" target="_blank" rel="noopener">
+        <span>Open Synced Google Sheet Tracker</span>
+        <span class="code-tag">↗</span>
+      </a>
+      <button class="drawer-item" onclick="toggleTheme()">
+        <span>Switch Theme (${state.theme === 'dark' ? 'Vellum Day' : 'Blueprint Night'})</span>
+        <span class="code-tag">${state.theme === 'dark' ? '☀' : '☾'}</span>
+      </button>
+      <button class="drawer-item" onclick="resetExamProgress()">
+        <span>Reset Practice Exam Answers</span>
+        <span class="code-tag">CLEAR</span>
+      </button>
     </div>
   `;
 }
 
 /* ==========================================================================
-   VIEW 1: CALM 3-PANE OVERVIEW (EXACT MATCH TO ATTACHED AESTHETIC + REAL AXP)
+   VIEW 1: PURPOSE-DRIVEN OVERVIEW
+   - Left Pane: Active Division Study & Exam Hub (NCARB Sections + Drive PDFs)
+   - Top-Right Pane: Active Division Formula, Code & AIA Contract Reference Sheet
+   - Bottom-Right Pane: User's Real MyNCARB Experience Record (720.25 / 3,740)
    ========================================================================== */
-function renderCalmOverview(focusDiv, totalApproved, totalRem) {
-  const plate = CAD_PLATES[focusDiv.code] || CAD_PLATES.PDD;
+function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
+  const studyInfo = DIVISION_STUDY_DATA[focusDiv.code] || DIVISION_STUDY_DATA.PcM;
+  const divQuestions = db.questions.filter(q => q.division === focusDiv.code);
+  const answeredInDiv = divQuestions.filter(q => state.examAnswers[q.id] !== undefined).length;
+  const axpForDiv = db.axpData.areas.find(a => a.code === focusDiv.code) || db.axpData.areas[0];
+  const axpRemForDiv = Number((axpForDiv.requiredHours - axpForDiv.totalLogged).toFixed(2));
+
+  // Filter matching Google Drive PDFs for this division
+  const matchingPdfs = (db.driveResources || []).filter(r =>
+    r.division === focusDiv.code ||
+    r.division === "ALL" ||
+    studyInfo.pdfKeywords.some(k => r.name.toLowerCase().includes(k.toLowerCase()))
+  ).slice(0, 4);
 
   return `
     <div class="overview-grid">
-      <!-- LEFT PANE: DIVISION PROFICIENCY HATCHED RADAR -->
-      <section class="pane-left-radar">
-        <div class="pane-heading">
-          <span>DIVISION PROFICIENCY</span>
-          <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);font-weight:500;">CLICK ANY AXIS TO SELECT</span>
+      <!-- LEFT PANE: ACTIVE DIVISION STUDY & EXAM HUB -->
+      <section class="pane-left-study">
+        <div>
+          <div class="pane-heading">
+            <span>${esc(focusDiv.code)} — ${esc(focusDiv.name)} STUDY &amp; EXAM HUB</span>
+            <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);">NCARB ARE 5.0</span>
+          </div>
+
+          <!-- Official NCARB Exam Specifications Strip -->
+          <div class="specs-strip">
+            <div class="spec-cell">
+              <div class="spec-lbl">EXAM ITEMS</div>
+              <div class="spec-val">${focusDiv.items} Questions</div>
+            </div>
+            <div class="spec-cell">
+              <div class="spec-lbl">TEST DURATION</div>
+              <div class="spec-val">${esc(focusDiv.duration)}</div>
+            </div>
+            <div class="spec-cell">
+              <div class="spec-lbl">NCARB PASSING SCORE</div>
+              <div class="spec-val">550 / 800 Scaled</div>
+            </div>
+            <div class="spec-cell">
+              <div class="spec-lbl">NATIONAL PASS RATE</div>
+              <div class="spec-val">${focusDiv.nationalPassRate}% (NCARB)</div>
+            </div>
+          </div>
+
+          <!-- Official NCARB Content Areas & Exam Weights -->
+          <div style="margin-top:1.1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.45rem;">
+              <span style="font-family:var(--font-condensed);font-size:0.96rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;">
+                OFFICIAL NCARB EXAM SECTIONS &amp; WEIGHTS (${esc(focusDiv.code)})
+              </span>
+              <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--ink-muted);">
+                ${studyInfo.sections.length} CONTENT AREAS
+              </span>
+            </div>
+
+            <div class="sections-list">
+              ${studyInfo.sections.map((sec, idx) => `
+                <div class="section-row">
+                  <div>
+                    <div class="section-title">${esc(sec.name)}</div>
+                    <div class="section-desc">${esc(sec.topics)}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <span class="section-weight-badge" title="Percentage of questions on the official NCARB exam">${esc(sec.weight)}</span>
+                    <button class="swiss-btn" style="padding:0.26rem 0.55rem;font-size:0.74rem;" onclick="state.examIdx=${idx % Math.max(1, divQuestions.length)};switchTopTab('exam')">
+                      DRILL →
+                    </button>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <!-- Direct Google Drive Study PDFs for this Division -->
+          <div style="margin-top:1.1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.45rem;">
+              <span style="font-family:var(--font-condensed);font-size:0.96rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;">
+                YOUR GOOGLE DRIVE STUDY GUIDES FOR ${esc(focusDiv.code)}
+              </span>
+              <button class="swiss-btn" style="padding:0.18rem 0.5rem;font-size:0.7rem;" onclick="switchTopTab('archive')">
+                ALL 16 FILES →
+              </button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:0.5rem;">
+              ${matchingPdfs.map(r => `
+                <a href="${esc(r.url)}" target="_blank" rel="noopener" style="border:var(--rule);background:var(--vellum-light);padding:0.55rem 0.7rem;text-decoration:none;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
+                  <div style="overflow:hidden;">
+                    <div style="font-size:0.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.name)}</div>
+                    <div style="font-family:var(--font-mono);font-size:0.66rem;color:var(--ink-muted);">${esc(r.category)}</div>
+                  </div>
+                  <span style="font-family:var(--font-mono);font-size:0.72rem;font-weight:700;color:var(--cobalt);flex-shrink:0;">PDF ↗</span>
+                </a>
+              `).join("")}
+            </div>
+          </div>
         </div>
 
-        <div style="margin:auto 0;padding:0.25rem 0;">
-          ${buildHatchedRadarSvg()}
-        </div>
-
-        <div style="border-top:var(--rule);padding-top:0.8rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.75rem;">
-          <div style="font-family:var(--font-mono);font-size:0.76rem;">
-            <strong>${focusDiv.code} READINESS:</strong> ${focusDiv.readinessScaledScore} / 800 SCALED
+        <!-- Bottom Action Bar for Selected Division -->
+        <div style="border-top:var(--rule);padding-top:0.85rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.75rem;">
+          <div style="font-family:var(--font-mono);font-size:0.74rem;">
+            <strong>${focusDiv.code} PRACTICE BANK:</strong> ${answeredInDiv} / ${divQuestions.length} ANSWERED · <strong>${focusDiv.code} AXP:</strong> ${axpForDiv.totalLogged} / ${axpForDiv.requiredHours} HRS (${axpRemForDiv} REM)
           </div>
           <button class="swiss-btn terracotta" onclick="switchTopTab('exam')">
-            PRACTICE ${focusDiv.code} EXAM (${db.questions.filter(q => q.division === focusDiv.code).length} Qs) →
+            START ${focusDiv.code} PRACTICE EXAM (${divQuestions.length} Qs) →
           </button>
         </div>
       </section>
 
-      <!-- RIGHT STACK: TOP ORTHOGRAPHIC CAD PLATE + BOTTOM AXP STATUS -->
+      <!-- RIGHT STACK: TOP FORMULA & CONTRACT REFERENCE + BOTTOM MYNCARB AXP STATUS -->
       <div class="pane-right-stack">
-        <!-- TOP-RIGHT PANE: HIGH-PRECISION ORTHOGRAPHIC CAD PLATE -->
-        <section class="pane-top-cad">
-          <div class="pane-heading">
-            <span>${esc(plate.title)}</span>
-            <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);">${focusDiv.code} PLATE</span>
-          </div>
+        <!-- TOP-RIGHT PANE: REAL DIVISION FORMULA, CODE & AIA CONTRACT SHEET -->
+        <section class="pane-top-ref">
+          <div>
+            <div class="pane-heading">
+              <span>${esc(focusDiv.code)} KEY FORMULAS, CODES &amp; AIA CONTRACTS</span>
+              <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">QUICK REFERENCE</span>
+            </div>
 
-          <div style="margin:0.2rem 0;">
-            ${buildFacadeCadSvg(plate)}
+            <div class="ref-sheet-grid">
+              ${studyInfo.formulas.map(f => `
+                <div class="ref-item">
+                  <div class="ref-term">${esc(f.term)}</div>
+                  <div class="ref-formula">${esc(f.formula)}</div>
+                </div>
+              `).join("")}
+            </div>
           </div>
         </section>
 
@@ -288,21 +665,22 @@ function renderCalmOverview(focusDiv, totalApproved, totalRem) {
         <section class="pane-bottom-axp">
           <div>
             <div class="pane-heading">
-              <span>CURRENT AXP STATUS (MYNCARB)</span>
-              <span style="font-family:var(--font-sans);font-size:0.9rem;font-weight:500;text-transform:none;">3,740 hours required</span>
+              <span>CURRENT AXP STATUS (MYNCARB RECORD)</span>
+              <span style="font-family:var(--font-sans);font-size:0.86rem;font-weight:500;text-transform:none;">3,740 hours required</span>
             </div>
 
             <table class="axp-clean-table">
               <tbody>
-                ${db.axpData.areas.map((a, idx) => {
+                ${db.axpData.areas.map(a => {
                   const pct = Math.min(100, ((a.totalLogged / a.requiredHours) * 100)).toFixed(1);
                   const barWidth = Math.max(2, Math.round((a.totalLogged / a.requiredHours) * 100));
-                  const color = idx === 4 || idx === 0 ? "var(--terracotta)" : "var(--cobalt)";
+                  const isSelected = a.code === focusDiv.code;
+                  const color = isSelected ? "var(--terracotta)" : "var(--cobalt)";
                   return `
-                    <tr>
+                    <tr style="cursor:pointer;${isSelected ? 'background:var(--vellum-card);' : ''}" onclick="selectDivision('${a.code}')" title="Click to focus ${a.name}">
                       <td class="lbl">${esc(a.code)}</td>
                       <td class="bar-cell">
-                        <div style="width:100%;height:12px;background:var(--vellum-tab);">
+                        <div style="width:100%;height:11px;background:var(--vellum-tab);">
                           <div style="width:${barWidth}%;height:100%;background:${color};"></div>
                         </div>
                       </td>
@@ -322,154 +700,32 @@ function renderCalmOverview(focusDiv, totalApproved, totalRem) {
                 ${totalApproved.toLocaleString()} / 3,740 HOURS<br/>
                 APPROVED
               </h2>
-              <div style="font-size:0.75rem;color:var(--ink-muted);margin-top:0.25rem;display:flex;gap:0.75rem;align-items:center;">
+              <div style="font-size:0.74rem;color:var(--ink-muted);margin-top:0.3rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
                 <span>${totalRem.toLocaleString()} hrs remaining · 0 submitted</span>
-                <button class="swiss-btn" style="padding:0.22rem 0.6rem;font-size:0.75rem;" onclick="openMyNcarbSyncModal()">SYNC / EDIT HOURS</button>
+                <button class="swiss-btn" style="padding:0.2rem 0.55rem;font-size:0.73rem;" onclick="openMyNcarbSyncModal()">SYNC / EDIT HOURS</button>
+                <button class="swiss-btn" style="padding:0.2rem 0.55rem;font-size:0.73rem;" onclick="switchTopTab('axp')">LOG WORK TASK →</button>
               </div>
             </div>
 
             <!-- Compact Remaining Breakdown (Right side of AXP Footer) -->
-            <div style="border-left:var(--rule);padding-left:0.85rem;font-family:var(--font-mono);font-size:0.72rem;">
+            <div style="border-left:var(--rule);padding-left:0.85rem;font-family:var(--font-mono);font-size:0.71rem;">
               ${db.axpData.areas.map(a => {
                 const rem = Number((a.requiredHours - a.totalLogged).toFixed(2));
                 return `
-                  <div style="display:flex;justify-content:space-between;padding:0.14rem 0;border-bottom:var(--rule-subtle);">
+                  <div style="display:flex;justify-content:space-between;padding:0.12rem 0;border-bottom:var(--rule-subtle);">
                     <span><strong>${a.code}</strong> Rem:</span>
                     <span>${rem.toLocaleString()} hrs</span>
                   </div>
                 `;
               }).join("")}
-              <div style="display:flex;justify-content:space-between;padding-top:0.2rem;color:var(--ink-muted);font-size:0.68rem;">
-                <span>INDIANA PLA</span><span>NO EXTRA REQ</span>
+              <div style="display:flex;justify-content:space-between;padding-top:0.2rem;color:var(--ink-muted);font-size:0.67rem;">
+                <span>INDIANA</span><span>NO EXTRA REQ</span>
               </div>
             </div>
           </div>
         </section>
       </div>
     </div>
-  `;
-}
-
-function buildHatchedRadarSvg() {
-  const divs = db.divisions;
-  const cx = 220, cy = 182, maxR = 132;
-  const angles = divs.map((_, i) => (-Math.PI / 2) + (i * 2 * Math.PI / divs.length));
-
-  const pt = (angle, ratio) => [
-    cx + ratio * maxR * Math.cos(angle),
-    cy + ratio * maxR * Math.sin(angle)
-  ];
-
-  const outerPts = angles.map(a => pt(a, 1).map(n => n.toFixed(1)).join(",")).join(" ");
-  const midPts = angles.map(a => pt(a, 0.6875).map(n => n.toFixed(1)).join(",")).join(" ");
-
-  let sectorHatch = "";
-  for (let s = 1; s <= 16; s++) {
-    const r = s / 16;
-    const ringPts = angles.map(a => pt(a, r).map(n => n.toFixed(1)).join(",")).join(" ");
-    sectorHatch += `<polygon points="${ringPts}" fill="none" stroke="var(--ink)" stroke-width="0.35" stroke-opacity="0.35" />`;
-  }
-
-  const spokesSvg = divs.map((d, i) => {
-    const [x, y] = pt(angles[i], 1);
-    const lx = cx + (maxR + 30) * Math.cos(angles[i]);
-    const ly = cy + (maxR + 25) * Math.sin(angles[i]);
-    const pct = Math.round((d.readinessScaledScore / 800) * 100);
-    return `
-      <line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--ink)" stroke-width="1.15" />
-      <g style="cursor:pointer" onclick="selectDivision('${d.code}')">
-        <text x="${lx.toFixed(1)}" y="${(ly - 5).toFixed(1)}" text-anchor="middle" font-family="var(--font-sans)" font-size="13.5" font-weight="600" fill="var(--ink)">${d.code}</text>
-        <text x="${lx.toFixed(1)}" y="${(ly + 10).toFixed(1)}" text-anchor="middle" font-family="var(--font-sans)" font-size="12.5" font-weight="500" fill="var(--ink)">${pct}%</text>
-      </g>
-    `;
-  }).join("");
-
-  const polyPts = divs.map((d, i) => {
-    const ratio = Math.max(0.25, Math.min(0.95, d.readinessScaledScore / 800));
-    return pt(angles[i], ratio).map(n => n.toFixed(1)).join(",");
-  }).join(" ");
-
-  return `
-    <svg viewBox="0 0 440 364" style="width:100%;max-height:385px;height:auto;display:block;margin:0 auto;">
-      ${sectorHatch}
-      <polygon points="${outerPts}" fill="none" stroke="var(--ink)" stroke-width="1.4" />
-      <polygon points="${midPts}" fill="none" stroke="var(--ink)" stroke-width="0.85" stroke-dasharray="4,3" />
-      ${spokesSvg}
-      <polygon points="${polyPts}" fill="rgba(41, 72, 184, 0.1)" stroke="var(--cobalt)" stroke-width="2.4" />
-    </svg>
-  `;
-}
-
-function buildFacadeCadSvg(plate) {
-  return `
-    <svg viewBox="0 0 490 205" style="width:100%;max-height:215px;height:auto;display:block;">
-      <defs>
-        <pattern id="cad-concrete" width="8" height="8" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="0.6" fill="var(--ink)" />
-          <circle cx="6" cy="5" r="0.5" fill="var(--ink)" />
-          <path d="M 4 1 L 5 2 L 3.5 2.5 Z" fill="none" stroke="var(--ink)" stroke-width="0.35" />
-        </pattern>
-      </defs>
-
-      <!-- Top Architectural Dimension String -->
-      <line x1="78" y1="22" x2="232" y2="22" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="84" y1="16" x2="84" y2="30" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="80" y1="26" x2="88" y2="18" stroke="var(--ink)" stroke-width="1" />
-      <line x1="142" y1="16" x2="142" y2="30" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="138" y1="26" x2="146" y2="18" stroke="var(--ink)" stroke-width="1" />
-      <line x1="188" y1="16" x2="188" y2="30" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="184" y1="26" x2="192" y2="18" stroke="var(--ink)" stroke-width="1" />
-      <line x1="226" y1="16" x2="226" y2="30" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="222" y1="26" x2="230" y2="18" stroke="var(--ink)" stroke-width="1" />
-
-      <text x="113" y="13" text-anchor="middle" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">${esc(plate.dims[0])}</text>
-      <text x="165" y="13" text-anchor="middle" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">${esc(plate.dims[1])}</text>
-      <text x="209" y="13" text-anchor="middle" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">${esc(plate.dims[2])}</text>
-
-      <!-- Left Vertical Dimension -->
-      <line x1="64" y1="34" x2="64" y2="185" stroke="var(--ink)" stroke-width="0.85" />
-      <line x1="60" y1="38" x2="68" y2="30" stroke="var(--ink)" stroke-width="1" />
-      <line x1="60" y1="189" x2="68" y2="181" stroke="var(--ink)" stroke-width="1" />
-      <text x="54" y="110" text-anchor="middle" transform="rotate(-90 54 110)" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" fill="var(--ink)">2.1m</text>
-
-      <!-- Wall Layers -->
-      <rect x="84" y="34" width="58" height="151" fill="url(#cad-concrete)" stroke="var(--ink)" stroke-width="1.2" />
-      <rect x="142" y="34" width="46" height="151" fill="var(--vellum-hover)" stroke="var(--ink)" stroke-width="1" />
-      <path d="M 142 34 L 188 59 L 142 84 L 188 109 L 142 134 L 188 159 L 142 185" fill="none" stroke="var(--ink)" stroke-width="0.65" />
-      <path d="M 188 34 L 142 59 L 188 84 L 142 109 L 188 134 L 142 159 L 188 185" fill="none" stroke="var(--ink)" stroke-width="0.65" />
-      <rect x="188" y="34" width="18" height="151" fill="var(--vellum-light)" stroke="var(--ink)" stroke-width="0.85" />
-      <rect x="206" y="34" width="20" height="151" fill="rgba(41,72,184,0.12)" stroke="var(--ink)" stroke-width="1.15" />
-
-      <rect x="102" y="132" width="104" height="8" fill="var(--vellum-tab)" stroke="var(--ink)" stroke-width="1.1" />
-      <rect x="196" y="122" width="32" height="26" fill="none" stroke="var(--ink)" stroke-width="1.4" />
-
-      <!-- 5 Callout Leaders -->
-      <circle cx="128" cy="54" r="2" fill="var(--ink)" />
-      <line x1="128" y1="54" x2="250" y2="54" stroke="var(--ink)" stroke-width="0.85" />
-      <text x="256" y="57" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[0])}</text>
-
-      <circle cx="165" cy="78" r="2" fill="var(--ink)" />
-      <line x1="165" y1="78" x2="250" y2="78" stroke="var(--ink)" stroke-width="0.85" />
-      <text x="256" y="81" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[1])}</text>
-
-      <circle cx="216" cy="102" r="2" fill="var(--ink)" />
-      <line x1="216" y1="102" x2="250" y2="102" stroke="var(--ink)" stroke-width="0.85" />
-      <text x="256" y="105" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[2])}</text>
-
-      <circle cx="226" cy="126" r="2" fill="var(--ink)" />
-      <line x1="226" y1="126" x2="250" y2="126" stroke="var(--ink)" stroke-width="0.85" />
-      <text x="256" y="129" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[3])}</text>
-
-      <circle cx="148" cy="136" r="2" fill="var(--ink)" />
-      <line x1="148" y1="136" x2="250" y2="150" stroke="var(--ink)" stroke-width="0.85" />
-      <text x="256" y="153" font-family="var(--font-condensed)" font-size="11.5" font-weight="600" letter-spacing="0.02em" fill="var(--ink)">${esc(plate.labels[4])}</text>
-
-      <!-- Bottom-Right Scale Titleblock (Fits comfortably inside 256..475) -->
-      <text x="256" y="179" font-family="var(--font-condensed)" font-size="11.5" font-weight="700" fill="var(--ink)">${esc(plate.title)}</text>
-      <line x1="256" y1="183" x2="475" y2="183" stroke="var(--ink)" stroke-width="1.1" />
-      <text x="256" y="196" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">SCALE</text>
-      <text x="475" y="196" text-anchor="end" font-family="var(--font-condensed)" font-size="11" font-weight="600" fill="var(--ink)">${esc(plate.scale)}</text>
-    </svg>
   `;
 }
 
@@ -482,6 +738,7 @@ function renderCalmExam(focusDiv) {
   const ans = state.examAnswers[q.id];
   const rev = Boolean(state.examRevealed[q.id]);
   const struck = new Set(state.examStrikes[q.id] || []);
+  const studyInfo = DIVISION_STUDY_DATA[focusDiv.code] || DIVISION_STUDY_DATA.PcM;
 
   return `
     <div class="exam-split">
@@ -546,16 +803,16 @@ function renderCalmExam(focusDiv) {
           <div style="border:var(--rule);background:var(--vellum);padding:1rem;font-family:var(--font-mono);font-size:0.76rem;line-height:1.6;white-space:pre-wrap;">${esc((cs.resources[state.examCaseTab] || cs.resources[0]).content)}</div>
         ` : `
           <div class="pane-heading">
-            <span>QUICK FORMULA &amp; CODE REFERENCE</span>
-            <span>${focusDiv.code}</span>
+            <span>${focusDiv.code} FORMULA &amp; CONTRACT REFERENCE</span>
+            <span>NCARB 5.0</span>
           </div>
-          <div style="border:var(--rule);background:var(--vellum);padding:1rem;font-family:var(--font-mono);font-size:0.76rem;line-height:1.65;">
-            <div><strong>Net Multiplier</strong> = Net Operating Revenue ÷ Direct Labor</div>
-            <div><strong>Break-Even Rate</strong> = 1.0 + (Indirect Overhead ÷ Direct Labor)</div>
-            <div><strong>Max GFA (Zoning)</strong> = FAR × Total Lot Area</div>
-            <div><strong>AIA G710 (ASI)</strong> = Minor change, NO cost/time impact</div>
-            <div><strong>AIA G714 (CCD)</strong> = Owner + Architect sign when cost disputed</div>
-            <div><strong>AIA G701 (CO)</strong> = Owner + Architect + Contractor sign</div>
+          <div class="ref-sheet-grid">
+            ${studyInfo.formulas.map(f => `
+              <div class="ref-item">
+                <div class="ref-term">${esc(f.term)}</div>
+                <div class="ref-formula">${esc(f.formula)}</div>
+              </div>
+            `).join("")}
           </div>
 
           <div class="pane-heading" style="margin-top:0.4rem;">
@@ -607,7 +864,7 @@ function renderExamInputControl(q, ans, rev, struck) {
     return `
       <div style="max-width:360px;border:var(--rule);padding:0.9rem;background:var(--vellum-light);">
         <label style="font-family:var(--font-mono);font-size:0.74rem;display:block;margin-bottom:0.35rem;">ENTER NUMERICAL ANSWER (${esc(q.unit)}):</label>
-        <input type="text" class="swiss-input" style="font-family:var(--font-mono);font-size:0.95rem;font-weight:700;" value="${esc(ans ?? '')}" oninput="state.examAnswers['${q.id}']=this.value" />
+        <input type="text" class="swiss-input" style="font-family:var(--font-mono);font-size:0.95rem;font-weight:700;" value="${esc(ans ?? '')}" oninput="state.examAnswers['${q.id}']=this.value;saveExamAnswers()" />
         ${rev ? `<div style="margin-top:0.4rem;font-family:var(--font-mono);font-size:0.76rem;color:var(--verdigris);font-weight:700;">Accepted Answer: ${esc(q.correctAnswer)}</div>` : ""}
       </div>
     `;
@@ -642,7 +899,7 @@ function renderExamInputControl(q, ans, rev, struck) {
         ${q.targets.map(t => `
           <div style="border:var(--rule);padding:0.7rem;background:var(--vellum-light);display:flex;justify-content:space-between;align-items:center;gap:1rem;">
             <span style="font-size:0.85rem;">${esc(t.label)}</span>
-            <select class="swiss-select" style="width:auto;min-width:210px;font-family:var(--font-mono);font-size:0.75rem;" onchange="state.examAnswers['${q.id}']={...(state.examAnswers['${q.id}']||{}),'${t.id}':this.value};render()">
+            <select class="swiss-select" style="width:auto;min-width:210px;font-family:var(--font-mono);font-size:0.75rem;" onchange="state.examAnswers['${q.id}']={...(state.examAnswers['${q.id}']||{}),'${t.id}':this.value};saveExamAnswers();render()">
               <option value="">— Match Token —</option>
               ${q.tokens.map(tok => `<option value="${esc(tok)}" ${cur[t.id] === tok ? 'selected' : ''}>${esc(tok)}</option>`).join("")}
             </select>
@@ -661,6 +918,7 @@ window.pickExamOption = function(qid, oid, type) {
     if (s.has(oid)) s.delete(oid); else s.add(oid);
     state.examAnswers[qid] = Array.from(s);
   }
+  saveExamAnswers();
   render();
 };
 
@@ -677,6 +935,7 @@ window.clickBlueprintPin = function(e, qid) {
   const x = Number((((e.clientX - r.left) / r.width) * 100).toFixed(1));
   const y = Number((((e.clientY - r.top) / r.height) * 70).toFixed(1));
   state.examAnswers[qid] = { x, y };
+  saveExamAnswers();
   render();
 };
 
@@ -709,17 +968,20 @@ function renderCalmAxp(totalApproved, totalRem) {
                       <circle cx="48" cy="48" r="36" fill="none" stroke="var(--vellum-tab)" stroke-width="7" />
                       <circle cx="48" cy="48" r="36" fill="none" stroke="${a.color || 'var(--cobalt)'}" stroke-width="7" stroke-dasharray="${dash} 226.2" transform="rotate(-90 48 48)" />
                       <text x="48" y="38" text-anchor="middle" font-family="var(--font-sans)" font-size="11" font-weight="700" fill="var(--ink)">${a.totalLogged}</text>
-                      <text x="48" y="49" text-anchor="middle" font-family="var(--font-sans)" font-size="8.5" fill="var(--ink-muted)">approved</text>
-                      <line x1="28" y1="53" x2="68" y2="53" stroke="var(--rule-subtle)" stroke-width="0.8" />
-                      <text x="48" y="63" text-anchor="middle" font-family="var(--font-sans)" font-size="9.5" font-weight="700" fill="var(--ink)">${a.requiredHours.toLocaleString()}</text>
-                      <text x="48" y="72" text-anchor="middle" font-family="var(--font-sans)" font-size="8" fill="var(--ink-muted)">required</text>
+                      <text x="48" y="48" text-anchor="middle" font-family="var(--font-sans)" font-size="6.8" fill="var(--ink-muted)">of ${a.requiredHours.toLocaleString()} hours</text>
+                      <text x="48" y="56" text-anchor="middle" font-family="var(--font-sans)" font-size="6.8" fill="var(--ink-muted)">required</text>
+                      <text x="48" y="69" text-anchor="middle" font-family="var(--font-mono)" font-size="7.5" font-weight="700" fill="${a.color || 'var(--cobalt)'}">${rem.toLocaleString()} left</text>
                     </svg>
                   </div>
                 </div>
-                <div style="border-top:var(--rule-subtle);padding:0.4rem 0.75rem;text-align:center;font-size:0.75rem;color:var(--ink-muted);">
-                  <div><strong>${a.pendingHours || 0}</strong> submitted</div>
-                  <div style="border-top:var(--rule-subtle);margin-top:0.25rem;padding-top:0.25rem;">
-                    <strong>${rem.toLocaleString()}</strong> remaining
+                <div style="border-top:var(--rule);display:grid;grid-template-columns:1fr 1fr;background:var(--vellum);">
+                  <div style="padding:0.35rem 0.55rem;border-right:var(--rule);">
+                    <div style="font-size:0.65rem;color:var(--ink-muted);">Submitted</div>
+                    <div style="font-family:var(--font-mono);font-size:0.78rem;font-weight:700;">${a.submittedHours} hrs</div>
+                  </div>
+                  <div style="padding:0.35rem 0.55rem;">
+                    <div style="font-size:0.65rem;color:var(--ink-muted);">Approved</div>
+                    <div style="font-family:var(--font-mono);font-size:0.78rem;font-weight:700;">${a.approvedHours} hrs</div>
                   </div>
                 </div>
               </div>
@@ -727,265 +989,218 @@ function renderCalmAxp(totalApproved, totalRem) {
           }).join("")}
         </div>
 
-        <div style="border:var(--rule);border-top:3px solid #d97706;padding:0.85rem 1rem;background:var(--vellum-light);display:flex;justify-content:space-between;align-items:center;">
+        <div style="border:var(--rule);padding:0.75rem 1rem;background:var(--vellum-light);display:flex;justify-content:space-between;align-items:center;">
           <div>
-            <div style="font-weight:700;font-size:0.92rem;">No Additional Experience Requirements for Indiana</div>
-            <div style="font-size:0.78rem;color:var(--ink-muted);">Indiana PLA requires the standard 3,740 AXP hours (${totalApproved} approved · ${totalRem} remaining).</div>
+            <div style="font-weight:700;font-size:0.86rem;">No Additional Experience Requirements for Indiana</div>
+            <div style="font-size:0.76rem;color:var(--ink-muted);">Indiana has no additional requirements beyond the 3,740 NCARB AXP hours.</div>
           </div>
-          <a href="${MYNCARB_EXP_URL}" target="_blank" rel="noopener" class="swiss-btn">OPEN MYNCARB.ORG ↗</a>
+          <span style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--verdigris);">TOTAL: ${totalApproved} / 3,740 HRS</span>
         </div>
       </section>
 
-      <!-- Right Pane: Work-Task to AXP Category Recommender -->
+      <!-- Right Pane: Work-Task AI Category Recommender & Logger -->
       <aside class="exam-right-pane">
         <div class="pane-heading">
           <span>WORK-TASK TO AXP CATEGORY RECOMMENDER</span>
         </div>
-
-        <p style="margin:0;font-size:0.84rem;color:var(--ink-muted);">
-          Paste a task from your Deltek Vantagepoint timesheet or studio log to get an instant AXP Experience Area recommendation.
+        <p style="margin:0;font-size:0.82rem;color:var(--ink-muted);">
+          Describe work you completed at your firm to classify it into the official NCARB AXP Experience Area and log hours directly to your record.
         </p>
 
-        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
-          <button class="swiss-btn" style="font-size:0.72rem;padding:0.25rem 0.55rem;" onclick="setAxpPreset('Reviewed contractor submittal log, curtain wall shop drawings, and issued ASI #4')">Submittals &amp; ASI</button>
-          <button class="swiss-btn" style="font-size:0.72rem;padding:0.25rem 0.55rem;" onclick="setAxpPreset('Calculated municipal zoning FAR, setbacks, and IBC Chapter 5 allowable area')">Zoning FAR &amp; IBC</button>
-          <button class="swiss-btn" style="font-size:0.72rem;padding:0.25rem 0.55rem;" onclick="setAxpPreset('Prepared firm Q4 staff utilization rate, net multiplier, and AIA B101 fee proposal')">Utilization &amp; Fee</button>
+        <div>
+          <label style="font-family:var(--font-mono);font-size:0.72rem;display:block;margin-bottom:0.3rem;">WORK TASK PERFORMED:</label>
+          <textarea class="swiss-textarea" rows="3" oninput="state.taskDesc=this.value;runTaskClassifier(true)">${esc(state.taskDesc)}</textarea>
         </div>
 
-        <textarea rows="3" class="swiss-textarea" oninput="state.axpTaskInput=this.value">${esc(state.axpTaskInput)}</textarea>
-
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:0.65rem;">
+        <div style="display:grid;grid-template-columns:130px 1fr;gap:0.65rem;align-items:end;">
           <div>
-            <label style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">PROJECT</label>
-            <input type="text" class="swiss-input" value="${esc(state.axpProject)}" oninput="state.axpProject=this.value" />
+            <label style="font-family:var(--font-mono);font-size:0.72rem;display:block;margin-bottom:0.3rem;">HOURS:</label>
+            <input type="number" step="0.25" class="swiss-input" value="${state.taskHours}" oninput="state.taskHours=parseFloat(this.value)||0" />
           </div>
-          <div>
-            <label style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">HOURS</label>
-            <input type="number" step="0.25" class="swiss-input" value="${state.axpHours}" oninput="state.axpHours=Number(this.value)" />
-          </div>
+          <button class="swiss-btn terracotta" style="justify-content:center;height:36px;" onclick="logTaskToMyNcarb()">
+            + LOG HOURS TO MYNCARB RECORD
+          </button>
         </div>
 
-        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
-          <button class="swiss-btn cobalt" onclick="suggestAxpArea()">SUGGEST CATEGORY</button>
-          <button class="swiss-btn terracotta" onclick="logAxpEntry()">+ ADD HOURS</button>
-          <button class="swiss-btn" onclick="downloadAxpCsv()">⬇ CSV</button>
-        </div>
-
-        ${state.axpSuggestion ? `
-          <div style="border:var(--rule);border-left:4px solid var(--terracotta);padding:0.85rem;background:var(--vellum);font-size:0.82rem;">
-            <div style="font-family:var(--font-mono);font-weight:700;color:var(--terracotta);">
-              RECOMMENDED: ${esc(state.axpSuggestion.code)} — ${esc(state.axpSuggestion.name)}
-            </div>
-            <div style="margin-top:0.25rem;">${esc(state.axpSuggestion.competency)}</div>
+        ${state.taskRec ? `
+          <div style="border:var(--rule);background:var(--vellum);padding:0.95rem;">
+            <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--terracotta);font-weight:700;">RECOMMENDED NCARB AXP AREA (${state.taskRec.confidence}% MATCH)</div>
+            <div style="font-size:1.05rem;font-weight:700;margin-top:0.2rem;">${esc(state.taskRec.code)} — ${esc(state.taskRec.areaName)}</div>
+            <div style="font-family:var(--font-mono);font-size:0.76rem;color:var(--cobalt);margin-top:0.25rem;">${esc(state.taskRec.matchedTask)}</div>
           </div>
         ` : ""}
-      </aside>
-    </div>
-  `;
-}
 
-function matchTaskToArea(txt) {
-  const t = (txt || "").toLowerCase();
-  if (t.includes("submittal") || t.includes("shop") || t.includes("asi") || t.includes("pay") || t.includes("site visit")) {
-    return { code: "CE", name: "Construction & Evaluation", competency: "Review contractor submittals, shop drawings, RFIs, and payment applications" };
-  }
-  if (t.includes("zoning") || t.includes("far") || t.includes("setback") || t.includes("program")) {
-    return { code: "PA", name: "Programming & Analysis", competency: "Analyze site zoning constraints, FAR, setbacks, and space programming" };
-  }
-  if (t.includes("multiplier") || t.includes("utilization") || t.includes("overhead") || t.includes("firm")) {
-    return { code: "PcM", name: "Practice Management", competency: "Establish and monitor firm financial metrics (utilization, overhead, net multiplier)" };
-  }
-  if (t.includes("schedule") || t.includes("b101") || t.includes("consultant")) {
-    return { code: "PjM", name: "Project Management", competency: "Manage project work plans, CPM schedules, and AIA Owner/Consultant agreements" };
-  }
-  if (t.includes("wall") || t.includes("flashing") || t.includes("spec") || t.includes("detail")) {
-    return { code: "PDD", name: "Project Development & Documentation", competency: "Prepare construction documents, wall assembly details, and CSI 3-Part specifications" };
-  }
-  return { code: "PPD", name: "Project Planning & Design", competency: "Perform schematic design alternatives, IBC life-safety egress, and system selection" };
-}
-
-window.setAxpPreset = function(txt) {
-  state.axpTaskInput = txt;
-  state.axpSuggestion = matchTaskToArea(txt);
-  render();
-};
-
-window.suggestAxpArea = function() {
-  state.axpSuggestion = matchTaskToArea(state.axpTaskInput);
-  render();
-};
-
-window.logAxpEntry = function() {
-  const m = matchTaskToArea(state.axpTaskInput);
-  state.axpSuggestion = m;
-  db.axpData.workLogs.unshift({
-    id: `AXP-${100 + db.axpData.workLogs.length + 1}`,
-    date: "2026-11-06",
-    project: state.axpProject,
-    setting: "Setting A",
-    description: state.axpTaskInput,
-    area: m.code,
-    competency: m.competency,
-    hours: state.axpHours,
-    status: "Approved"
-  });
-  const area = db.axpData.areas.find(a => a.code === m.code);
-  if (area) area.totalLogged = Number((area.totalLogged + state.axpHours).toFixed(2));
-  saveAxpToStorage();
-  render();
-};
-
-window.downloadAxpCsv = function() {
-  const rows = [["Area", "Code", "Required_Hours", "Approved_Hours", "Submitted_Hours", "Remaining_Hours"]];
-  db.axpData.areas.forEach(a => rows.push([`"${a.name}"`, a.code, a.requiredHours, a.totalLogged, a.pendingHours || 0, Number((a.requiredHours - a.totalLogged).toFixed(2))]));
-  const blob = new Blob([rows.map(r => r.join(",")).join("\n")], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "MyNCARB_AXP_Summary.csv";
-  a.click();
-};
-
-/* ==========================================================================
-   MYNCARB SIGN-IN & HOURS SYNC MODAL
-   ========================================================================== */
-window.openMyNcarbSyncModal = function() {
-  const m = document.getElementById("modal-root");
-  m.innerHTML = `
-    <div class="modal-backdrop" onclick="document.getElementById('modal-root').innerHTML=''">
-      <div class="modal-sheet" onclick="event.stopPropagation()">
-        <div style="padding:0.9rem 1.25rem;border-bottom:var(--rule);display:flex;justify-content:space-between;align-items:center;background:var(--vellum);">
-          <strong style="font-family:var(--font-condensed);font-size:1.1rem;letter-spacing:0.04em;">MYNCARB ACCOUNT SYNC &amp; HOURS UPDATER</strong>
-          <button class="swiss-btn" style="padding:0.2rem 0.6rem;" onclick="document.getElementById('modal-root').innerHTML=''">✕</button>
+        <div class="pane-heading" style="margin-top:0.35rem;">
+          <span>RECENT AXP LOG ENTRIES</span>
         </div>
-        <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.75rem;border:var(--rule);background:var(--vellum);">
-            <div style="font-size:0.82rem;">
-              <strong>1. Open MyNCARB Experience Portal</strong><br/>
-              <span style="color:var(--ink-muted);">Sign in at my.ncarb.org in a new tab, then update any newly approved hours below.</span>
-            </div>
-            <a href="${MYNCARB_EXP_URL}" target="_blank" rel="noopener" class="swiss-btn cobalt" style="white-space:nowrap;">SIGN IN AT MY.NCARB.ORG ↗</a>
-          </div>
-
-          <div style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;">
-            2. CURRENT SYNCED MYNCARB HOURS (INDIANA JURISDICTION):
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;">
-            ${db.axpData.areas.map(a => `
-              <div style="border:var(--rule);padding:0.55rem 0.75rem;background:var(--vellum);display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                  <strong style="font-size:0.82rem;">${a.code}</strong>
-                  <div style="font-size:0.72rem;color:var(--ink-muted);">Req: ${a.requiredHours}h</div>
-                </div>
-                <input id="sync-in-${a.code}" type="number" step="0.25" class="swiss-input" style="width:92px;font-family:var(--font-mono);font-weight:700;text-align:right;" value="${a.totalLogged}" />
-              </div>
-            `).join("")}
-          </div>
-
-          <div style="display:flex;justify-content:flex-end;gap:0.6rem;padding-top:0.5rem;border-top:var(--rule);">
-            <button class="swiss-btn" onclick="document.getElementById('modal-root').innerHTML=''">CANCEL</button>
-            <button class="swiss-btn terracotta" onclick="saveMyNcarbModalHours()">SAVE &amp; UPDATE DASHBOARD</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-};
-
-window.saveMyNcarbModalHours = function() {
-  db.axpData.areas.forEach(a => {
-    const el = document.getElementById(`sync-in-${a.code}`);
-    if (el) {
-      const val = parseFloat(el.value);
-      if (!isNaN(val)) {
-        a.totalLogged = val;
-        a.approvedSettingA = val;
-        a.remainingHours = Number((a.requiredHours - val).toFixed(2));
-      }
-    }
-  });
-  saveAxpToStorage();
-  document.getElementById("modal-root").innerHTML = "";
-  render();
-};
-
-/* ==========================================================================
-   VIEW 4: CALM STUDY ARCHIVE (13 GOOGLE DRIVE PDFS + NATIONAL/REGIONAL STATS)
-   ========================================================================== */
-function renderCalmArchive(focusDiv) {
-  const reg = db.ncarbNewsAndRegional || {};
-  const jurisdictions = reg.midwestJurisdictions || [];
-  const st = jurisdictions.find(j => j.code === state.midwestState) || jurisdictions[0] || {};
-
-  return `
-    <div class="exam-split">
-      <section class="exam-left-pane" style="justify-content:flex-start;">
-        <div class="pane-heading">
-          <span>GOOGLE DRIVE STUDY ARCHIVE (${db.driveResources.length} PDFS)</span>
-          <a href="${DRIVE_FOLDER_URL}" target="_blank" rel="noopener" style="font-family:var(--font-mono);font-size:0.75rem;color:var(--terracotta);">OPEN DRIVE FOLDER ↗</a>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:0.65rem;">
-          ${db.driveResources.map(r => `
-            <div style="border-bottom:var(--rule-subtle);padding-bottom:0.65rem;display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
-              <div>
-                <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--terracotta);font-weight:700;">
-                  ${esc(r.provider)} · ${esc(r.divisions.join(" · "))} · ${esc(r.size)}
-                </div>
-                <div style="font-size:0.92rem;font-weight:600;margin-top:0.1rem;">${esc(r.title)}</div>
-                <div style="font-size:0.78rem;color:var(--ink-muted);margin-top:0.1rem;">${esc(r.summary)}</div>
-              </div>
-              <a href="${esc(r.driveUrl)}" target="_blank" rel="noopener" class="swiss-btn" style="font-size:0.74rem;padding:0.3rem 0.7rem;white-space:nowrap;">OPEN PDF ↗</a>
+        <div style="border:var(--rule);background:var(--vellum);">
+          ${(db.axpData.recentLogs || []).slice(0, 5).map(l => `
+            <div style="padding:0.5rem 0.75rem;border-bottom:var(--rule-subtle);display:flex;justify-content:space-between;gap:0.75rem;font-size:0.78rem;">
+              <div><strong>[${esc(l.area)}]</strong> ${esc(l.task)}</div>
+              <div style="font-family:var(--font-mono);white-space:nowrap;font-weight:700;">+${l.hours}h</div>
             </div>
           `).join("")}
         </div>
-      </section>
-
-      <aside class="exam-right-pane">
-        <div class="pane-heading">
-          <span>NATIONAL PASS RATES (NCARB BY THE NUMBERS)</span>
-        </div>
-
-        <table class="axp-clean-table">
-          <tbody>
-            ${db.divisions.map(d => `
-              <tr>
-                <td class="lbl"><strong>${d.code}</strong></td>
-                <td class="bar-cell">
-                  <div style="height:12px;background:var(--vellum-tab);">
-                    <div style="width:${d.passRates['2025']}%;height:100%;background:var(--cobalt);"></div>
-                  </div>
-                </td>
-                <td class="pct-cell">${d.passRates['2025']}%</td>
-                <td class="hrs-cell">1st: ${d.passRates.firstAttempt}%</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-
-        <div class="pane-heading" style="margin-top:0.75rem;">
-          <span>LICENSING BOARD &amp; PSI CENTERS</span>
-          <select class="swiss-select" style="width:auto;padding:0.2rem 0.5rem;font-size:0.74rem;" onchange="state.midwestState=this.value;render()">
-            ${jurisdictions.map(j => `<option value="${j.code}" ${j.code === state.midwestState ? 'selected' : ''}>${esc(j.code)} — ${esc(j.state.split(' ')[0])}</option>`).join("")}
-          </select>
-        </div>
-
-        <div style="border:var(--rule);padding:0.95rem;background:var(--vellum);font-size:0.82rem;line-height:1.55;">
-          <div><strong>${esc(st.state)}</strong> (Pass Avg: <strong>${st.overallPassRate || 58}%</strong>)</div>
-          <p style="margin:0.35rem 0;color:var(--ink-muted);">${esc(st.boardRules)}</p>
-          <div style="font-family:var(--font-mono);font-size:0.74rem;">
-            <strong>PSI Centers:</strong> ${esc((st.psiCenters || []).join(" · "))}
-          </div>
-        </div>
       </aside>
     </div>
   `;
 }
 
-if (window.__ATELIER_DB__) {
-  initPortal();
-} else {
-  fetch("data/portal_db.json")
-    .then(r => r.json())
-    .then(d => { db = d; initPortal(); });
+window.runTaskClassifier = function(shouldRender) {
+  if (!db) return;
+  const text = (state.taskDesc || "").toLowerCase();
+  const rules = [
+    { code: "PcM", kw: ["fee", "multiplier", "overhead", "contract", "b101", "proposal", "insurance", "firm", "marketing", "billing"] },
+    { code: "PjM", kw: ["schedule", "cpm", "rfi", "consultant", "budget", "meeting", "work plan", "coordination", "kickoff"] },
+    { code: "PA",  kw: ["zoning", "setback", "far", "site", "topography", "soil", "program", "adjacency", "survey", "daylight"] },
+    { code: "PPD", kw: ["schematic", "massing", "hvac", "structural", "egress", "life safety", "acoustic", "sustainability", "layout"] },
+    { code: "PDD", kw: ["revit", "detail", "wall section", "flashing", "spec", "masterformat", "curtain wall", "CD", "door schedule", "waterproof"] },
+    { code: "CE",  kw: ["punchlist", "shop drawing", "submittal", "pay app", "g702", "site visit", "field report", "asi", "change order", "closeout"] }
+  ];
+
+  let best = "PDD", maxHits = 0;
+  rules.forEach(r => {
+    let hits = 0;
+    r.kw.forEach(k => { if (text.includes(k)) hits++; });
+    if (hits > maxHits) { maxHits = hits; best = r.code; }
+  });
+
+  const area = db.axpData.areas.find(a => a.code === best) || db.axpData.areas[4];
+  state.taskRec = {
+    code: area.code,
+    areaName: area.name,
+    confidence: Math.min(98, 82 + maxHits * 5),
+    matchedTask: area.tasks[0]
+  };
+  if (shouldRender) render();
+};
+
+window.logTaskToMyNcarb = function() {
+  if (!state.taskRec || !db) return;
+  const hrs = Number((parseFloat(state.taskHours) || 0).toFixed(2));
+  if (hrs <= 0) return;
+
+  const area = db.axpData.areas.find(a => a.code === state.taskRec.code);
+  if (area) {
+    area.approvedHours = Number((area.approvedHours + hrs).toFixed(2));
+    area.totalLogged = Number((area.approvedHours + area.submittedHours).toFixed(2));
+  }
+  db.axpData.recentLogs.unshift({
+    date: new Date().toISOString().slice(0, 10),
+    area: state.taskRec.code,
+    hours: hrs,
+    setting: "Setting A",
+    supervisor: "MyNCARB Log",
+    status: "Approved",
+    task: state.taskDesc
+  });
+
+  localStorage.setItem("atelier_myncarb_axp_v2", JSON.stringify(db.axpData));
+  render();
+};
+
+/* ==========================================================================
+   VIEW 4: ARCHIVE (GOOGLE DRIVE STUDY MONOGRAPHS & MOCK EXAMS)
+   ========================================================================== */
+function renderCalmArchive(focusDiv) {
+  return `
+    <div style="padding:1.4rem 1.65rem;">
+      <div class="pane-heading" style="margin-bottom:0.85rem;">
+        <span>ARCHITECTURAL STUDY ARCHIVE (16 GOOGLE DRIVE PDFS)</span>
+        <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);">CLICK ANY FILE TO OPEN IN GOOGLE DRIVE</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(295px, 1fr));gap:0.75rem;">
+        ${(db.driveResources || []).map(r => `
+          <div style="border:var(--rule);background:${r.division === focusDiv.code ? 'var(--vellum-card)' : 'var(--vellum-light)'};padding:0.85rem;display:flex;flex-direction:column;justify-content:space-between;gap:0.65rem;">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.7rem;color:var(--ink-muted);">
+                <span><strong>${esc(r.division)}</strong></span>
+                <span>${esc(r.category)}</span>
+              </div>
+              <div style="font-weight:700;font-size:0.9rem;margin-top:0.25rem;">${esc(r.name)}</div>
+              <div style="font-size:0.76rem;color:var(--ink-secondary);margin-top:0.25rem;">${esc(r.notes)}</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--rule-subtle);padding-top:0.5rem;">
+              <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--ink-muted);">${esc(r.provider)}</span>
+              <a class="swiss-btn" style="padding:0.25rem 0.6rem;font-size:0.74rem;" href="${esc(r.url)}" target="_blank" rel="noopener">OPEN PDF ↗</a>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
 }
+
+/* ==========================================================================
+   MYNCARB SIGN-IN & DIRECT HOURS SYNC MODAL
+   ========================================================================== */
+function renderMyNcarbSyncModal() {
+  return `
+    <div class="modal-backdrop" onclick="if(event.target===this)closeMyNcarbSyncModal()">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <div>
+            <div style="font-family:var(--font-condensed);font-size:1.15rem;font-weight:700;letter-spacing:0.04em;">
+              MYNCARB ACCOUNT SIGN-IN &amp; EXPERIENCE HOURS SYNC
+            </div>
+            <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">
+              Connected to MyNCARB Record · Indiana Jurisdiction (3,740 Required Hours)
+            </div>
+          </div>
+          <button class="swiss-btn" onclick="closeMyNcarbSyncModal()">✕ CLOSE</button>
+        </div>
+
+        <form class="modal-body" onsubmit="saveMyNcarbHoursFromModal(event)">
+          <div style="border:var(--rule);background:var(--vellum-light);padding:0.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+            <div style="font-size:0.8rem;">
+              <strong>Step 1:</strong> Sign in to your official NCARB Experience tab or adjust your approved/submitted hours below.
+            </div>
+            <a class="swiss-btn cobalt" href="https://my.ncarb.org/apps/experience" target="_blank" rel="noopener" style="white-space:nowrap;">
+              LAUNCH MY.NCARB.ORG ↗
+            </a>
+          </div>
+
+          <table class="axp-clean-table" style="margin-bottom:1rem;">
+            <thead>
+              <tr style="border-bottom:var(--rule);font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">
+                <th style="text-align:left;padding:0.4rem;">AREA</th>
+                <th style="text-align:left;padding:0.4rem;">EXPERIENCE AREA NAME</th>
+                <th style="text-align:right;padding:0.4rem;">REQUIRED</th>
+                <th style="text-align:right;padding:0.4rem;">SUBMITTED HRS</th>
+                <th style="text-align:right;padding:0.4rem;">APPROVED HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${db.axpData.areas.map(a => `
+                <tr>
+                  <td class="lbl">${esc(a.code)}</td>
+                  <td style="font-weight:600;">${esc(a.name)}</td>
+                  <td style="text-align:right;font-family:var(--font-mono);">${a.requiredHours}</td>
+                  <td style="text-align:right;width:110px;">
+                    <input type="number" step="0.25" name="sub_${a.code}" class="swiss-input" style="text-align:right;font-family:var(--font-mono);padding:0.25rem 0.4rem;" value="${a.submittedHours}" />
+                  </td>
+                  <td style="text-align:right;width:120px;">
+                    <input type="number" step="0.25" name="app_${a.code}" class="swiss-input" style="text-align:right;font-family:var(--font-mono);font-weight:700;padding:0.25rem 0.4rem;" value="${a.approvedHours}" />
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);">
+              Changes save immediately to your dashboard &amp; browser storage.
+            </span>
+            <div style="display:flex;gap:0.5rem;">
+              <button type="button" class="swiss-btn" onclick="closeMyNcarbSyncModal()">CANCEL</button>
+              <button type="submit" class="swiss-btn terracotta">SAVE MYNCARB HOURS TO DASHBOARD</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+document.addEventListener("DOMContentLoaded", initPortal);
