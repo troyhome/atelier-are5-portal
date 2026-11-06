@@ -1,8 +1,7 @@
 /* ==========================================================================
-   ATELIER ARE 5.0 — PURPOSE-DRIVEN SWISS WORKSPACE ENGINE
+   ATELIER ARE 5.0 — PURPOSE-DRIVEN SWISS WORKSPACE & INGEST ENGINE
    ========================================================================== */
 
-// Real Official NCARB Content Sections & Real Formulas/Contracts per Division
 const DIVISION_STUDY_DATA = {
   PcM: {
     sections: [
@@ -34,8 +33,7 @@ const DIVISION_STUDY_DATA = {
       { term: "Utilization Rate", formula: "Direct Billable Hours ÷ Total Hours Worked (Target: 65%–75%)" },
       { term: "Business Entities", formula: "LLP (shields partner negligence) · LLC (pass-through + liability shield) · S-Corp (≤100 shareholders)" },
       { term: "Core AIA Contracts", formula: "AIA B101 (Owner–Architect) · AIA C401 (Architect–Consultant) · AIA C191 (IPD Multi-Party)" }
-    ],
-    pdfKeywords: ["PCM", "Practice Management", "hyperfine", "Resource Matrix", "NCARB Handbook", "Study Strategy"]
+    ]
   },
   PjM: {
     sections: [
@@ -72,8 +70,7 @@ const DIVISION_STUDY_DATA = {
       { term: "AIA Change Forms", formula: "G701 Change Order (O+A+C) · G714 CCD (O+A) · G710 ASI (Arch only, no cost/time)" },
       { term: "Delivery Contracts", formula: "A101 (Stipulated Sum) · A102 (Cost Plus GMP) · A133 (CM as Constructor)" },
       { term: "Instrument of Service", formula: "AIA B101 §7: Architect retains copyright; Owner gets non-exclusive license upon payment" }
-    ],
-    pdfKeywords: ["hyperfine", "Division 2", "Resource Matrix", "NCARB Handbook", "Study Strategy"]
+    ]
   },
   PA: {
     sections: [
@@ -105,8 +102,7 @@ const DIVISION_STUDY_DATA = {
       { term: "Topographic Contours", formula: "Contours pointing uphill ('V') = Valley/Swale; water flows perpendicular to contours" },
       { term: "Soil Bearing (High→Low)", formula: "Bedrock (12,000+ psf) > Gravel (3,000) > Sand (2,000) > Silt/Clay (1,500 psf)" },
       { term: "Historic Preservation", formula: "Preservation (stabilize) · Rehabilitation (compatible use) · Restoration (period) · Reconstruction" }
-    ],
-    pdfKeywords: ["PA Walking", "Division 2", "PPIARE", "NCARB Handbook", "Resource Matrix"]
+    ]
   },
   PPD: {
     sections: [
@@ -143,8 +139,7 @@ const DIVISION_STUDY_DATA = {
       { term: "Lateral Systems", formula: "Shear Wall (high stiffness) · Braced Frame (economical steel) · Moment Frame (open bays, higher drift)" },
       { term: "HVAC Selection", formula: "VAV (multi-zone office) · VRF (simultaneous heat/cool, tight plenum) · DOAS + Chilled Beam" },
       { term: "Reverberation Time", formula: "Sabine Formula: RT60 = 0.049 × Volume (CF) ÷ Total Absorption (Sabins)" }
-    ],
-    pdfKeywords: ["Division 4", "PPIARE", "NCARB Handbook", "Resource Matrix"]
+    ]
   },
   PDD: {
     sections: [
@@ -181,8 +176,7 @@ const DIVISION_STUDY_DATA = {
       { term: "CSI 3-Part Specs", formula: "Part 1: General (submittals/QA) · Part 2: Products (materials/mixes) · Part 3: Execution (install)" },
       { term: "Galvanic Action", formula: "Avoid direct contact between dissimilar metals (e.g., copper runoff onto galvanized steel/aluminum)" },
       { term: "Acoustics (STC / NRC)", formula: "STC = Airborne transmission loss through partition (50+ good) · NRC = Surface sound absorption" }
-    ],
-    pdfKeywords: ["Division 5", "Division 4", "PPIARE", "NCARB Handbook", "Resource Matrix"]
+    ]
   },
   CE: {
     sections: [
@@ -214,14 +208,13 @@ const DIVISION_STUDY_DATA = {
       { term: "Closeout Affidavits", formula: "G706 (Payment of Debts/Claims) · G706A (Release of Liens) · G707 (Consent of Surety)" },
       { term: "Bidding Changes", formula: "Before Bid Opening = Addendum (AIA A701) · After Contract Award = ASI (G710), CCD (G714), CO (G701)" },
       { term: "Authority to Stop Work", formula: "Owner has right to stop work (A201 §2.3); Architect may REJECT non-conforming work (§4.2.6)" }
-    ],
-    pdfKeywords: ["Division 6", "PPIARE", "NCARB Handbook", "Resource Matrix"]
+    ]
   }
 };
 
 const state = {
   data: null,
-  topTab: "overview",       // overview | exam | axp | archive
+  topTab: "overview",       // overview | exam | axp | ingest
   activeDiv: "PcM",         // PcM | PjM | PA | PPD | PDD | CE
   menuOpen: false,
   theme: localStorage.getItem("atelier_swiss_theme") || "light",
@@ -234,7 +227,17 @@ const state = {
   examRevealed: {},
   examStrikes: {},
   examCaseTab: 0,
-  examLegacy: "ALL",
+  examFilterMode: "DIV",    // DIV | INGESTED | PPP | CDS
+
+  // Ingested Screenshots, PDFs & Custom Generated Questions
+  ingestedBatches: JSON.parse(localStorage.getItem("atelier_ingested_batches_v1") || "[]"),
+  customQuestions: JSON.parse(localStorage.getItem("atelier_custom_questions_v1") || "[]"),
+  ingestStatus: "",
+  ingestBusy: false,
+  ingestPasteText: "",
+  ingestPasteTitle: "",
+  ingestTargetDiv: "AUTO",
+  lastIngestedBatchId: null,
 
   // AXP Work-Task Classifier State
   taskDesc: "Prepared wall section details, curtain wall flashing transitions, and window head/sill waterproof membrane callouts in Revit for Design Development package.",
@@ -250,6 +253,11 @@ function esc(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function getAllQuestions() {
+  if (!db) return [];
+  return [...state.customQuestions, ...(db.questions || [])];
 }
 
 async function initPortal() {
@@ -279,8 +287,13 @@ async function initPortal() {
     const h = window.location.hash.replace("#", "").trim();
     if (["PcM", "PjM", "PA", "PPD", "PDD", "CE"].includes(h)) {
       state.activeDiv = h;
+    } else if (h === "ingest") {
+      state.topTab = "ingest";
     }
   }
+
+  // Global clipboard paste listener so the user can press Ctrl+V / Cmd+V with a screenshot anywhere
+  window.addEventListener("paste", handleGlobalPaste);
 
   filterExamPool();
   runTaskClassifier(false);
@@ -291,15 +304,32 @@ function saveExamAnswers() {
   localStorage.setItem("atelier_exam_answers", JSON.stringify(state.examAnswers));
 }
 
+function saveIngestedData() {
+  try {
+    localStorage.setItem("atelier_ingested_batches_v1", JSON.stringify(state.ingestedBatches));
+    localStorage.setItem("atelier_custom_questions_v1", JSON.stringify(state.customQuestions));
+  } catch (e) {
+    console.warn("Storage quota warning; trimming older full-res image data", e);
+  }
+}
+
 function filterExamPool() {
   if (!db) return;
-  let list = db.questions || [];
-  if (state.examLegacy !== "ALL") {
-    list = list.filter(q => q.legacyMapping && q.legacyMapping.includes(state.examLegacy));
+  const allQs = getAllQuestions();
+  let list = allQs;
+
+  if (state.examFilterMode === "INGESTED") {
+    list = state.customQuestions.length ? state.customQuestions : allQs.filter(q => q.division === state.activeDiv);
+  } else if (state.examFilterMode.startsWith("BATCH:")) {
+    const bid = state.examFilterMode.split("BATCH:")[1];
+    list = state.customQuestions.filter(q => q.batchId === bid);
+  } else if (state.examFilterMode === "PPP" || state.examFilterMode === "CDS") {
+    list = allQs.filter(q => q.legacyMapping && q.legacyMapping.includes(state.examFilterMode));
   } else {
-    list = list.filter(q => q.division === state.activeDiv);
+    list = allQs.filter(q => q.division === state.activeDiv);
   }
-  if (!list.length) list = db.questions;
+
+  if (!list.length) list = allQs;
   state.examPool = list;
   state.examIdx = 0;
 }
@@ -325,7 +355,9 @@ window.switchTopTab = function(tab) {
 
 window.selectDivision = function(code) {
   state.activeDiv = code;
-  state.examLegacy = "ALL";
+  if (state.examFilterMode === "PPP" || state.examFilterMode === "CDS" || state.examFilterMode.startsWith("BATCH:")) {
+    state.examFilterMode = "DIV";
+  }
   state.menuOpen = false;
   filterExamPool();
   render();
@@ -377,6 +409,401 @@ window.saveMyNcarbHoursFromModal = function(e) {
 };
 
 /* ==========================================================================
+   CLIENT-SIDE SCREENSHOT / PDF / NOTES INGESTION & QUESTION GENERATOR
+   ========================================================================== */
+function detectDivisionFromText(text, fallbackDiv) {
+  if (state.ingestTargetDiv && state.ingestTargetDiv !== "AUTO") {
+    return state.ingestTargetDiv;
+  }
+  const t = String(text || "").toLowerCase();
+  const scores = {
+    PcM: 0, PjM: 0, PA: 0, PPD: 0, PDD: 0, CE: 0
+  };
+  const kwMap = {
+    PcM: ["multiplier", "overhead", "utilization", "llp", "llc", "s-corp", "b101", "ethics", "standard of care", "accrual", "practice management", "pcm"],
+    PjM: ["critical path", "float", "cpm", "work plan", "a101", "a133", "c401", "quality control", "project management", "pjm", "burn rate"],
+    PA:  ["zoning", "setback", "far", "floor area ratio", "soil", "bearing", "contour", "swale", "historic", "programming", "brownfield"],
+    PPD: ["egress", "dead-end", "travel distance", "hvac", "vav", "vrf", "chilled beam", "shear wall", "moment frame", "truss", "sabine", "ppd"],
+    PDD: ["u-factor", "r-value", "vapor retarder", "dew point", "flashing", "masterformat", "csi", "curtain wall", "galvanic", "stc", "nrc", "pdd"],
+    CE:  ["shop drawing", "submittal", "pay app", "g702", "g704", "substantial completion", "retainage", "punchlist", "addendum", "a201", "surety", "lien"]
+  };
+  Object.keys(kwMap).forEach(div => {
+    kwMap[div].forEach(k => {
+      if (t.includes(k)) scores[div] += 2;
+    });
+  });
+  let best = fallbackDiv || state.activeDiv || "PcM";
+  let bestScore = 0;
+  Object.keys(scores).forEach(div => {
+    if (scores[div] > bestScore) {
+      bestScore = scores[div];
+      best = div;
+    }
+  });
+  return best;
+}
+
+function synthesizeQuestionsFromExtractedText(rawText, sourceName, divCode, imageDataUrl, batchId) {
+  const clean = String(rawText || "").replace(/\r/g, "\n").trim();
+  const generated = [];
+  const timestamp = Date.now();
+
+  // 1. First check if rawText contains structured multiple-choice items (e.g. A. / B. / C. / D.)
+  const mcRegex = /(?:^|\n)\s*(?:Q\d*[\.\:\)]|\d+[\.\)])\s*([^\n]+(?:\n(?!\s*[A-D][\.\)])[^\n]+)*)\s*\n\s*A[\.\)]\s*([^\n]+)\s*\n\s*B[\.\)]\s*([^\n]+)\s*\n\s*C[\.\)]\s*([^\n]+)\s*\n\s*D[\.\)]\s*([^\n]+)/gi;
+  let match;
+  let idx = 0;
+  while ((match = mcRegex.exec(clean)) !== null && idx < 12) {
+    idx++;
+    const stem = match[1].replace(/\s+/g, " ").trim();
+    const optA = match[2].trim();
+    const optB = match[3].trim();
+    const optC = match[4].trim();
+    const optD = match[5].trim();
+    generated.push({
+      id: `ING-${batchId}-${idx}`,
+      batchId,
+      division: divCode,
+      section: `Ingested Study Material (${sourceName})`,
+      objective: "Custom Ingested Practice Item",
+      source: `Ingested: ${sourceName}`,
+      type: "mc",
+      stem,
+      options: [
+        { id: "A", text: optA },
+        { id: "B", text: optB },
+        { id: "C", text: optC },
+        { id: "D", text: optD }
+      ],
+      correctAnswer: ["A"],
+      explanation: `Extracted from your uploaded study file "${sourceName}". Review the exhibit and extracted notes to verify all option nuances.`,
+      reference: sourceName,
+      imageExhibit: imageDataUrl || null,
+      extractedNotes: clean.slice(0, 900)
+    });
+  }
+
+  // 2. Extract high-value declarative sentences, formulas, numbers, or code statements
+  const sentences = clean
+    .split(/(?<=[.?!])\s+|\n+/)
+    .map(s => s.replace(/\s+/g, " ").trim())
+    .filter(s => s.length >= 32 && s.length <= 280);
+
+  const distractorPool = [
+    "Only after the Owner files a separate Notice of Substantial Completion under AIA G707",
+    "The Contractor assumes full liability for code compliance and zoning variance approval",
+    "Multiply Gross Revenue by Total Overhead and divide by Net Profit Margin",
+    "Install the vapor retarder exclusively on the cold-in-winter exterior face in Climate Zones 6–8",
+    "Requires unanimous written sign-off from the Building Official, Surety, and Subcontractors on AIA G710"
+  ];
+
+  sentences.slice(0, 6).forEach((sent, sIdx) => {
+    if (generated.length >= 10) return;
+
+    // Check if sentence has a clear equation or number for a Fill-in-the-Blank or targeted MC
+    const numMatch = sent.match(/\b(\d+(?:\.\d+)?)\s*(%|ft|feet|inches|in|psf|hours|days|x)\b/i);
+    const eqParts = sent.split(/\s*[:=—–-]\s*/);
+
+    if (eqParts.length >= 2 && eqParts[0].length >= 4 && eqParts[0].length <= 65 && eqParts[1].length >= 10) {
+      const concept = eqParts[0].trim();
+      const definition = eqParts.slice(1).join(" — ").trim();
+      const otherDefs = sentences
+        .filter((_, i) => i !== sIdx)
+        .map(x => x.slice(0, 120))
+        .concat(distractorPool)
+        .slice(0, 3);
+
+      const opts = [
+        { id: "A", text: definition },
+        { id: "B", text: otherDefs[0] || distractorPool[0] },
+        { id: "C", text: otherDefs[1] || distractorPool[1] },
+        { id: "D", text: otherDefs[2] || distractorPool[2] }
+      ];
+
+      generated.push({
+        id: `ING-${batchId}-C${sIdx + 1}`,
+        batchId,
+        division: divCode,
+        section: `Ingested Study Material (${sourceName})`,
+        objective: "Concept & Formula Recall",
+        source: `Ingested: ${sourceName}`,
+        type: "mc",
+        stem: `Based on your ingested ${divCode} study material ("${sourceName}"), which of the following accurately defines or governs "${concept}"?`,
+        options: opts,
+        correctAnswer: ["A"],
+        explanation: `Source statement from "${sourceName}": ${sent}`,
+        reference: sourceName,
+        imageExhibit: imageDataUrl || null,
+        extractedNotes: clean.slice(0, 900)
+      });
+    } else if (numMatch) {
+      const val = numMatch[1];
+      const unit = numMatch[2];
+      const blanked = sent.replace(numMatch[0], `_____ ${unit}`);
+      generated.push({
+        id: `ING-${batchId}-N${sIdx + 1}`,
+        batchId,
+        division: divCode,
+        section: `Ingested Study Material (${sourceName})`,
+        objective: "Numerical Code / Threshold Drill",
+        source: `Ingested: ${sourceName}`,
+        type: "fib",
+        unit: unit,
+        stem: `Fill in the missing threshold/value from your uploaded ${divCode} study material ("${sourceName}"):\n\n"${blanked}"`,
+        correctAnswer: val,
+        explanation: `Full statement from "${sourceName}": ${sent}`,
+        reference: sourceName,
+        imageExhibit: imageDataUrl || null,
+        extractedNotes: clean.slice(0, 900)
+      });
+    } else {
+      const otherSents = sentences
+        .filter((_, i) => i !== sIdx)
+        .slice(0, 2)
+        .map(x => "Contrary to standard practice: " + x.slice(0, 100));
+      generated.push({
+        id: `ING-${batchId}-S${sIdx + 1}`,
+        batchId,
+        division: divCode,
+        section: `Ingested Study Material (${sourceName})`,
+        objective: "Key Principle Verification",
+        source: `Ingested: ${sourceName}`,
+        type: "mc",
+        stem: `Reviewing the ingested study material "${sourceName}" for ${divCode}, which of the following principles is explicitly established in your notes/exhibit?`,
+        options: [
+          { id: "A", text: sent },
+          { id: "B", text: otherSents[0] || distractorPool[0] },
+          { id: "C", text: otherSents[1] || distractorPool[1] },
+          { id: "D", text: distractorPool[2] }
+        ],
+        correctAnswer: ["A"],
+        explanation: `Verified directly from your ingested study file "${sourceName}": "${sent}"`,
+        reference: sourceName,
+        imageExhibit: imageDataUrl || null,
+        extractedNotes: clean.slice(0, 900)
+      });
+    }
+  });
+
+  // 3. If it's a visual screenshot where OCR text was minimal (e.g., pure architectural drawing/detail), always create Visual Exhibit Analysis questions!
+  if (generated.length === 0) {
+    const studyInfo = DIVISION_STUDY_DATA[divCode] || DIVISION_STUDY_DATA.PcM;
+    const f0 = studyInfo.formulas[0];
+    const f1 = studyInfo.formulas[1];
+    generated.push(
+      {
+        id: `ING-${batchId}-V1`,
+        batchId,
+        division: divCode,
+        section: `Visual Exhibit Analysis (${sourceName})`,
+        objective: studyInfo.sections[0].name,
+        source: `Screenshot Exhibit: ${sourceName}`,
+        type: "mc",
+        stem: `Examine the uploaded study screenshot "${sourceName}" (shown in the Exhibit pane on the right). When applying this ${divCode} exhibit on the ARE 5.0 exam, which primary ${divCode} principle governs "${f0.term}"?`,
+        options: [
+          { id: "A", text: `${f0.term}: ${f0.formula}` },
+          { id: "B", text: distractorPool[0] },
+          { id: "C", text: distractorPool[1] },
+          { id: "D", text: distractorPool[3] }
+        ],
+        correctAnswer: ["A"],
+        explanation: `Your uploaded exhibit "${sourceName}" is paired with ${divCode} (${studyInfo.sections[0].name}). Core rule: ${f0.term} = ${f0.formula}.`,
+        reference: sourceName,
+        imageExhibit: imageDataUrl || null,
+        extractedNotes: clean || `Visual study screenshot uploaded for ${divCode} (${sourceName}).`
+      },
+      {
+        id: `ING-${batchId}-V2`,
+        batchId,
+        division: divCode,
+        section: `Visual Exhibit Analysis (${sourceName})`,
+        objective: studyInfo.sections[1] ? studyInfo.sections[1].name : studyInfo.sections[0].name,
+        source: `Screenshot Exhibit: ${sourceName}`,
+        type: "mc",
+        stem: `Referring to your uploaded ${divCode} study exhibit "${sourceName}", how should the architect apply "${f1.term}" during project execution?`,
+        options: [
+          { id: "A", text: `${f1.term}: ${f1.formula}` },
+          { id: "B", text: distractorPool[2] },
+          { id: "C", text: distractorPool[4] },
+          { id: "D", text: distractorPool[0] }
+        ],
+        correctAnswer: ["A"],
+        explanation: `Key ${divCode} reference for "${sourceName}": ${f1.term} — ${f1.formula}.`,
+        reference: sourceName,
+        imageExhibit: imageDataUrl || null,
+        extractedNotes: clean || `Visual study screenshot uploaded for ${divCode} (${sourceName}).`
+      }
+    );
+  }
+
+  return generated;
+}
+
+async function extractTextFromPdfFile(file) {
+  if (!window.pdfjsLib) {
+    throw new Error("PDF.js library is still loading");
+  }
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const arrayBuf = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  const maxPages = Math.min(pdf.numPages, 15);
+  let fullText = "";
+  for (let p = 1; p <= maxPages; p++) {
+    state.ingestStatus = `Reading PDF page ${p} of ${maxPages} (${file.name})...`;
+    render();
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const strings = content.items.map(it => it.str);
+    fullText += strings.join(" ") + "\n\n";
+  }
+  return fullText;
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function runOcrOnImage(dataUrl, fileName) {
+  if (!window.Tesseract) return "";
+  try {
+    state.ingestStatus = `Running OCR text & diagram recognition on "${fileName}"...`;
+    render();
+    const result = await window.Tesseract.recognize(dataUrl, "eng");
+    return (result && result.data && result.data.text) ? result.data.text : "";
+  } catch (e) {
+    console.warn("OCR fallback:", e);
+    return "";
+  }
+}
+
+window.handleIngestFiles = async function(fileList) {
+  if (!fileList || !fileList.length) return;
+  state.ingestBusy = true;
+  const files = Array.from(fileList);
+
+  for (const file of files) {
+    const batchId = "B" + Date.now().toString(36).toUpperCase();
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isImage = file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+
+    let extractedText = "";
+    let imageDataUrl = null;
+
+    try {
+      if (isPdf) {
+        state.ingestStatus = `Extracting text & questions from PDF "${file.name}"...`;
+        render();
+        extractedText = await extractTextFromPdfFile(file);
+      } else if (isImage) {
+        state.ingestStatus = `Loading screenshot "${file.name}"...`;
+        render();
+        imageDataUrl = await readFileAsDataUrl(file);
+        extractedText = await runOcrOnImage(imageDataUrl, file.name);
+      } else {
+        extractedText = await file.text();
+      }
+    } catch (err) {
+      console.warn("File extraction notice:", err);
+    }
+
+    const divCode = detectDivisionFromText(extractedText + " " + file.name, state.activeDiv);
+    const newQs = synthesizeQuestionsFromExtractedText(
+      extractedText,
+      file.name,
+      divCode,
+      imageDataUrl,
+      batchId
+    );
+
+    const batchRecord = {
+      id: batchId,
+      name: file.name,
+      kind: isPdf ? "PDF Study Material" : isImage ? "Screenshot Exhibit" : "Study Notes",
+      division: divCode,
+      createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      questionCount: newQs.length,
+      previewImage: imageDataUrl,
+      extractedSnippet: (extractedText || "").replace(/\s+/g, " ").trim().slice(0, 260)
+    };
+
+    state.ingestedBatches.unshift(batchRecord);
+    state.customQuestions.unshift(...newQs);
+    state.lastIngestedBatchId = batchId;
+    state.activeDiv = divCode;
+    state.ingestStatus = `✓ Ingested "${file.name}" → Generated ${newQs.length} interactive ${divCode} test questions!`;
+  }
+
+  state.ingestBusy = false;
+  saveIngestedData();
+  filterExamPool();
+  render();
+};
+
+function handleGlobalPaste(e) {
+  if (!e.clipboardData) return;
+  const items = Array.from(e.clipboardData.items || []);
+  const imgItem = items.find(it => it.type && it.type.startsWith("image/"));
+  if (imgItem) {
+    e.preventDefault();
+    const blob = imgItem.getAsFile();
+    if (blob) {
+      const namedFile = new File([blob], `Pasted_Screenshot_${new Date().toISOString().slice(11, 19).replace(/:/g, "")}.png`, { type: blob.type });
+      window.handleIngestFiles([namedFile]);
+    }
+  }
+}
+
+window.ingestPastedNotes = function() {
+  const txt = (state.ingestPasteText || "").trim();
+  if (!txt) return;
+  const title = (state.ingestPasteTitle || "").trim() || `Study Notes (${state.activeDiv})`;
+  const batchId = "B" + Date.now().toString(36).toUpperCase();
+  const divCode = detectDivisionFromText(txt + " " + title, state.activeDiv);
+  const newQs = synthesizeQuestionsFromExtractedText(txt, title, divCode, null, batchId);
+
+  state.ingestedBatches.unshift({
+    id: batchId,
+    name: title,
+    kind: "Pasted Study Notes",
+    division: divCode,
+    createdAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    questionCount: newQs.length,
+    previewImage: null,
+    extractedSnippet: txt.slice(0, 260)
+  });
+
+  state.customQuestions.unshift(...newQs);
+  state.lastIngestedBatchId = batchId;
+  state.ingestPasteText = "";
+  state.ingestPasteTitle = "";
+  state.ingestStatus = `✓ Ingested "${title}" → Generated ${newQs.length} interactive ${divCode} test questions!`;
+  saveIngestedData();
+  filterExamPool();
+  render();
+};
+
+window.quizOnBatch = function(batchId) {
+  state.examFilterMode = batchId ? `BATCH:${batchId}` : "INGESTED";
+  filterExamPool();
+  state.topTab = "exam";
+  render();
+};
+
+window.deleteIngestedBatch = function(batchId) {
+  state.ingestedBatches = state.ingestedBatches.filter(b => b.id !== batchId);
+  state.customQuestions = state.customQuestions.filter(q => q.batchId !== batchId);
+  if (state.lastIngestedBatchId === batchId) state.lastIngestedBatchId = null;
+  saveIngestedData();
+  filterExamPool();
+  render();
+};
+
+/* ==========================================================================
    MASTER RENDER
    ========================================================================== */
 function render() {
@@ -386,6 +813,7 @@ function render() {
   const focusDiv = db.divisions.find(d => d.code === state.activeDiv) || db.divisions[0];
   const totalApproved = db.axpData.areas.reduce((s, a) => s + a.totalLogged, 0);
   const totalRem = Number((3740 - totalApproved).toFixed(2));
+  const allQs = getAllQuestions();
 
   root.innerHTML = `
     <div class="monograph-sheet">
@@ -413,7 +841,7 @@ function render() {
           </button>
         </div>
 
-        ${state.menuOpen ? renderHamburgerDrawer(totalApproved) : ""}
+        ${state.menuOpen ? renderHamburgerDrawer(totalApproved, allQs.length) : ""}
       </header>
 
       <!-- ROW 2: SUB-BAR (DIVISION HEADER LEFT | 4 TABS RIGHT) -->
@@ -427,7 +855,7 @@ function render() {
           <button class="subnav-tab-btn ${state.topTab === 'overview' ? 'active' : ''}" onclick="switchTopTab('overview')">OVERVIEW</button>
           <button class="subnav-tab-btn ${state.topTab === 'exam' ? 'active' : ''}" onclick="switchTopTab('exam')">PRACTICE EXAM</button>
           <button class="subnav-tab-btn ${state.topTab === 'axp' ? 'active' : ''}" onclick="switchTopTab('axp')">AXP HOURS</button>
-          <button class="subnav-tab-btn ${state.topTab === 'archive' ? 'active' : ''}" onclick="switchTopTab('archive')">ARCHIVE</button>
+          <button class="subnav-tab-btn ${state.topTab === 'ingest' ? 'active' : ''}" onclick="switchTopTab('ingest')">INGEST &amp; QUIZ (${state.customQuestions.length})</button>
         </div>
       </nav>
 
@@ -438,7 +866,7 @@ function render() {
           <div>
             ${db.divisions.map((d, i) => {
               const axpArea = db.axpData.areas.find(a => a.code === d.code);
-              const divQs = db.questions.filter(q => q.division === d.code);
+              const divQs = allQs.filter(q => q.division === d.code);
               const answeredCount = divQs.filter(q => state.examAnswers[q.id] !== undefined).length;
               return `
                 <div class="spine-item ${d.code === state.activeDiv ? 'active' : ''}" onclick="selectDivision('${d.code}')">
@@ -463,10 +891,10 @@ function render() {
 
         <!-- MAIN WORKSPACE CANVAS -->
         <main>
-          ${state.topTab === "overview" ? renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) : ""}
-          ${state.topTab === "exam" ? renderCalmExam(focusDiv) : ""}
+          ${state.topTab === "overview" ? renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem, allQs) : ""}
+          ${state.topTab === "exam" ? renderCalmExam(focusDiv, allQs) : ""}
           ${state.topTab === "axp" ? renderCalmAxp(totalApproved, totalRem) : ""}
-          ${state.topTab === "archive" ? renderCalmArchive(focusDiv) : ""}
+          ${state.topTab === "ingest" ? renderIngestStudio(focusDiv) : ""}
         </main>
       </div>
     </div>
@@ -478,7 +906,7 @@ function render() {
 /* ==========================================================================
    HAMBURGER MENU DRAWER
    ========================================================================== */
-function renderHamburgerDrawer(totalApproved) {
+function renderHamburgerDrawer(totalApproved, totalQuestionCount) {
   return `
     <div class="hamburger-drawer">
       <div class="drawer-section-hdr">STUDIO VIEWS</div>
@@ -487,16 +915,16 @@ function renderHamburgerDrawer(totalApproved) {
         <span class="code-tag">${state.topTab === 'overview' ? 'ACTIVE' : 'VIEW'}</span>
       </button>
       <button class="drawer-item" onclick="switchTopTab('exam')">
-        <span>02 · Practice Exam Simulator (${db.questions.length} Qs)</span>
+        <span>02 · Practice Exam Simulator (${totalQuestionCount} Qs)</span>
         <span class="code-tag">${state.topTab === 'exam' ? 'ACTIVE' : 'PRACTICE'}</span>
       </button>
       <button class="drawer-item" onclick="switchTopTab('axp')">
         <span>03 · MyNCARB AXP Hours &amp; Task Logger</span>
         <span class="code-tag">${totalApproved} / 3,740h</span>
       </button>
-      <button class="drawer-item" onclick="switchTopTab('archive')">
-        <span>04 · Google Drive Study Archive (16 PDFs)</span>
-        <span class="code-tag">LIBRARY</span>
+      <button class="drawer-item" onclick="switchTopTab('ingest')">
+        <span>04 · Ingest Screenshots &amp; PDFs to Quiz Me</span>
+        <span class="code-tag">${state.customQuestions.length} INGESTED</span>
       </button>
 
       <div class="drawer-section-hdr">JUMP TO ARE 5.0 DIVISION</div>
@@ -534,28 +962,21 @@ function renderHamburgerDrawer(totalApproved) {
 
 /* ==========================================================================
    VIEW 1: PURPOSE-DRIVEN OVERVIEW
-   - Left Pane: Active Division Study & Exam Hub (NCARB Sections + Drive PDFs)
+   - Left Pane: Active Division Study & Exam Hub + Screenshot/PDF Dropzone
    - Top-Right Pane: Active Division Formula, Code & AIA Contract Reference Sheet
    - Bottom-Right Pane: User's Real MyNCARB Experience Record (720.25 / 3,740)
    ========================================================================== */
-function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
+function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem, allQs) {
   const studyInfo = DIVISION_STUDY_DATA[focusDiv.code] || DIVISION_STUDY_DATA.PcM;
-  const divQuestions = db.questions.filter(q => q.division === focusDiv.code);
+  const divQuestions = allQs.filter(q => q.division === focusDiv.code);
   const answeredInDiv = divQuestions.filter(q => state.examAnswers[q.id] !== undefined).length;
   const axpForDiv = db.axpData.areas.find(a => a.code === focusDiv.code) || db.axpData.areas[0];
   const axpRemForDiv = Number((axpForDiv.requiredHours - axpForDiv.totalLogged).toFixed(2));
-
-  // Filter matching Google Drive PDFs for this division
-  const matchingPdfs = (db.driveResources || []).filter(r => {
-    const label = String(r.title || r.name || r.filename || "").toLowerCase();
-    return (Array.isArray(r.divisions) && r.divisions.includes(focusDiv.code)) ||
-      r.division === focusDiv.code ||
-      studyInfo.pdfKeywords.some(k => label.includes(k.toLowerCase()));
-  }).slice(0, 4);
+  const divIngestedCount = state.customQuestions.filter(q => q.division === focusDiv.code).length;
 
   return `
     <div class="overview-grid">
-      <!-- LEFT PANE: ACTIVE DIVISION STUDY & EXAM HUB -->
+      <!-- LEFT PANE: ACTIVE DIVISION STUDY & EXAM HUB + SCREENSHOT/PDF INGEST DROPZONE -->
       <section class="pane-left-study">
         <div>
           <div class="pane-heading">
@@ -584,8 +1005,8 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
           </div>
 
           <!-- Official NCARB Content Areas & Exam Weights -->
-          <div style="margin-top:1.1rem;">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.45rem;">
+          <div style="margin-top:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.4rem;">
               <span style="font-family:var(--font-condensed);font-size:0.96rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;">
                 OFFICIAL NCARB EXAM SECTIONS &amp; WEIGHTS (${esc(focusDiv.code)})
               </span>
@@ -603,7 +1024,7 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
                   </div>
                   <div style="display:flex;align-items:center;gap:0.5rem;">
                     <span class="section-weight-badge" title="Percentage of questions on the official NCARB exam">${esc(sec.weight)}</span>
-                    <button class="swiss-btn" style="padding:0.26rem 0.55rem;font-size:0.74rem;" onclick="state.examIdx=${idx % Math.max(1, divQuestions.length)};switchTopTab('exam')">
+                    <button class="swiss-btn" style="padding:0.26rem 0.55rem;font-size:0.74rem;" onclick="state.examFilterMode='DIV';filterExamPool();state.examIdx=${idx % Math.max(1, divQuestions.length)};switchTopTab('exam')">
                       DRILL →
                     </button>
                   </div>
@@ -612,37 +1033,52 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
             </div>
           </div>
 
-          <!-- Direct Google Drive Study PDFs for this Division -->
-          <div style="margin-top:1.1rem;">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.45rem;">
+          <!-- Interactive Screenshot & PDF Study Material Ingestor (Replaces static PDF list) -->
+          <div style="margin-top:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.4rem;">
               <span style="font-family:var(--font-condensed);font-size:0.96rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;">
-                YOUR GOOGLE DRIVE STUDY GUIDES FOR ${esc(focusDiv.code)}
+                INGEST SCREENSHOTS OR STUDY PDFS TO TEST ME (${esc(focusDiv.code)})
               </span>
-              <button class="swiss-btn" style="padding:0.18rem 0.5rem;font-size:0.7rem;" onclick="switchTopTab('archive')">
-                ALL 16 FILES →
+              <button class="swiss-btn" style="padding:0.18rem 0.55rem;font-size:0.72rem;" onclick="switchTopTab('ingest')">
+                OPEN INGEST STUDIO (${state.customQuestions.length} CUSTOM Qs) →
               </button>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:0.5rem;">
-              ${matchingPdfs.map(r => `
-                <a href="${esc(r.driveUrl || r.url)}" target="_blank" rel="noopener" style="min-width:0;overflow:hidden;border:var(--rule);background:var(--vellum-light);padding:0.55rem 0.7rem;text-decoration:none;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-                  <div style="min-width:0;flex:1;overflow:hidden;">
-                    <div style="font-size:0.78rem;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.title || r.name || r.filename)}</div>
-                    <div style="font-family:var(--font-mono);font-size:0.66rem;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.category)}</div>
-                  </div>
-                  <span style="font-family:var(--font-mono);font-size:0.72rem;font-weight:700;color:var(--cobalt);flex-shrink:0;">PDF ↗</span>
-                </a>
-              `).join("")}
-            </div>
+            <label class="ingest-dropzone"
+              ondragover="event.preventDefault();this.classList.add('dragover')"
+              ondragleave="this.classList.remove('dragover')"
+              ondrop="event.preventDefault();this.classList.remove('dragover');handleIngestFiles(event.dataTransfer.files)">
+              <input type="file" multiple accept="image/*,.pdf,.txt,.md" style="display:none;" onchange="handleIngestFiles(this.files)" />
+              <div>
+                <div style="font-weight:700;font-size:0.86rem;">
+                  + Drop Study Screenshots (PNG/JPG) or PDFs Here — or Press <span style="font-family:var(--font-mono);">Ctrl+V</span> to Paste Screenshot
+                </div>
+                <div style="font-size:0.75rem;color:var(--ink-secondary);margin-top:0.15rem;">
+                  Extracts diagrams, formulas, code tables &amp; questions and immediately builds interactive ${esc(focusDiv.code)} test items.
+                </div>
+              </div>
+              <span class="swiss-btn cobalt" style="flex-shrink:0;">BROWSE FILES</span>
+            </label>
+
+            ${state.ingestStatus ? `
+              <div style="margin-top:0.5rem;padding:0.5rem 0.75rem;border:var(--rule);background:var(--vellum-card);display:flex;justify-content:space-between;align-items:center;gap:0.75rem;font-family:var(--font-mono);font-size:0.74rem;">
+                <span>${esc(state.ingestStatus)}</span>
+                ${state.lastIngestedBatchId ? `
+                  <button class="swiss-btn terracotta" style="padding:0.22rem 0.6rem;font-size:0.74rem;flex-shrink:0;" onclick="quizOnBatch('${state.lastIngestedBatchId}')">
+                    TEST ME ON THIS NOW →
+                  </button>
+                ` : ""}
+              </div>
+            ` : ""}
           </div>
         </div>
 
         <!-- Bottom Action Bar for Selected Division -->
         <div style="border-top:var(--rule);padding-top:0.85rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.75rem;">
           <div style="font-family:var(--font-mono);font-size:0.74rem;">
-            <strong>${focusDiv.code} PRACTICE BANK:</strong> ${answeredInDiv} / ${divQuestions.length} ANSWERED · <strong>${focusDiv.code} AXP:</strong> ${axpForDiv.totalLogged} / ${axpForDiv.requiredHours} HRS (${axpRemForDiv} REM)
+            <strong>${focusDiv.code} QUESTION BANK:</strong> ${answeredInDiv} / ${divQuestions.length} ANSWERED (${divIngestedCount} INGESTED) · <strong>${focusDiv.code} AXP:</strong> ${axpForDiv.totalLogged} / ${axpForDiv.requiredHours} HRS
           </div>
-          <button class="swiss-btn terracotta" onclick="switchTopTab('exam')">
+          <button class="swiss-btn terracotta" onclick="state.examFilterMode='DIV';filterExamPool();switchTopTab('exam')">
             START ${focusDiv.code} PRACTICE EXAM (${divQuestions.length} Qs) →
           </button>
         </div>
@@ -738,10 +1174,10 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
 }
 
 /* ==========================================================================
-   VIEW 2: CALM PRACTICE EXAM SIMULATOR
+   VIEW 2: CALM PRACTICE EXAM SIMULATOR (SUPPORTS SCREENSHOT EXHIBITS)
    ========================================================================== */
-function renderCalmExam(focusDiv) {
-  const q = state.examPool[state.examIdx % state.examPool.length] || db.questions[0];
+function renderCalmExam(focusDiv, allQs) {
+  const q = state.examPool[state.examIdx % state.examPool.length] || allQs[0];
   const cs = q.caseStudyId ? db.caseStudies.find(c => c.id === q.caseStudyId) : null;
   const ans = state.examAnswers[q.id];
   const rev = Boolean(state.examRevealed[q.id]);
@@ -756,18 +1192,22 @@ function renderCalmExam(focusDiv) {
             <div style="font-family:var(--font-condensed);font-size:1.1rem;font-weight:700;letter-spacing:0.03em;">
               ${esc(q.division)} PRACTICE EXAM · ITEM ${state.examIdx + 1} OF ${state.examPool.length}
             </div>
-            <select class="swiss-select" style="width:auto;padding:0.25rem 0.6rem;font-family:var(--font-mono);font-size:0.74rem;" onchange="state.examLegacy=this.value;filterExamPool();render()">
-              <option value="ALL" ${state.examLegacy === 'ALL' ? 'selected' : ''}>${focusDiv.code} Division Items (${db.questions.filter(x => x.division === focusDiv.code).length})</option>
-              <option value="PPP" ${state.examLegacy === 'PPP' ? 'selected' : ''}>Legacy ARE 4.0 PPP Mock Exam</option>
-              <option value="CDS" ${state.examLegacy === 'CDS' ? 'selected' : ''}>Legacy ARE 4.0 CDS Mock Exam</option>
-            </select>
+            <div style="display:flex;gap:0.45rem;align-items:center;">
+              <select class="swiss-select" style="width:auto;padding:0.25rem 0.6rem;font-family:var(--font-mono);font-size:0.73rem;" onchange="state.examFilterMode=this.value;filterExamPool();render()">
+                <option value="DIV" ${state.examFilterMode === 'DIV' ? 'selected' : ''}>${focusDiv.code} Division Bank (${allQs.filter(x => x.division === focusDiv.code).length} Qs)</option>
+                <option value="INGESTED" ${state.examFilterMode === 'INGESTED' ? 'selected' : ''}>★ My Ingested Screenshots &amp; PDFs (${state.customQuestions.length} Qs)</option>
+                <option value="PPP" ${state.examFilterMode === 'PPP' ? 'selected' : ''}>Legacy ARE 4.0 PPP Mock Exam</option>
+                <option value="CDS" ${state.examFilterMode === 'CDS' ? 'selected' : ''}>Legacy ARE 4.0 CDS Mock Exam</option>
+              </select>
+              <button class="swiss-btn" style="padding:0.25rem 0.55rem;font-size:0.73rem;" onclick="switchTopTab('ingest')">+ DROP SCREENSHOT / PDF</button>
+            </div>
           </div>
 
           <div style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);margin-bottom:0.55rem;">
-            ${esc(q.section)} · Objective ${esc(q.objective)} · Source: ${esc(q.source)}
+            ${esc(q.section)} · Objective: ${esc(q.objective)} · Source: ${esc(q.source)}
           </div>
 
-          <div style="font-size:1.02rem;font-weight:500;line-height:1.6;margin-bottom:1.25rem;">
+          <div style="font-size:1.02rem;font-weight:500;line-height:1.6;margin-bottom:1.25rem;white-space:pre-line;">
             ${esc(q.stem)}
           </div>
 
@@ -776,7 +1216,7 @@ function renderCalmExam(focusDiv) {
           ${rev ? `
             <div style="margin-top:1.1rem;padding:1rem;background:var(--vellum-light);border:var(--rule);border-left:4px solid var(--verdigris);font-size:0.86rem;line-height:1.55;">
               <div style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--verdigris);margin-bottom:0.3rem;">
-                NCARB EXPLANATION &amp; CODE CITATION
+                NCARB EXPLANATION &amp; SOURCE CITATION
               </div>
               <div>${esc(q.explanation)}</div>
               <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);margin-top:0.4rem;">
@@ -796,7 +1236,21 @@ function renderCalmExam(focusDiv) {
       </section>
 
       <aside class="exam-right-pane">
-        ${cs ? `
+        ${q.imageExhibit ? `
+          <div class="pane-heading">
+            <span>INGESTED STUDY SCREENSHOT EXHIBIT</span>
+            <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">${esc(q.reference)}</span>
+          </div>
+          <div style="border:var(--rule);background:#fff;padding:0.5rem;">
+            <img src="${q.imageExhibit}" alt="Ingested Study Screenshot" style="width:100%;max-height:340px;object-fit:contain;display:block;" />
+          </div>
+          ${q.extractedNotes ? `
+            <div style="border:var(--rule);background:var(--vellum);padding:0.75rem;font-family:var(--font-mono);font-size:0.72rem;line-height:1.5;max-height:180px;overflow-y:auto;">
+              <strong>EXTRACTED OCR / NOTES:</strong><br/>
+              ${esc(q.extractedNotes)}
+            </div>
+          ` : ""}
+        ` : cs ? `
           <div class="pane-heading">
             <span>CASE STUDY EXHIBIT · ${esc(cs.title)}</span>
           </div>
@@ -822,18 +1276,18 @@ function renderCalmExam(focusDiv) {
               </div>
             `).join("")}
           </div>
-
-          <div class="pane-heading" style="margin-top:0.4rem;">
-            <span>ITEM NAVIGATOR (${state.examPool.length} ITEMS)</span>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
-            ${state.examPool.map((it, idx) => {
-              const isCur = idx === state.examIdx;
-              const hasA = state.examAnswers[it.id] !== undefined;
-              return `<button class="swiss-btn ${isCur ? 'terracotta' : ''}" style="width:32px;height:30px;padding:0;justify-content:center;font-family:var(--font-mono);font-size:0.74rem;${hasA && !isCur ? 'background:var(--vellum-tab);' : ''}" onclick="state.examIdx=${idx};render()">${idx + 1}</button>`;
-            }).join("")}
-          </div>
         `}
+
+        <div class="pane-heading" style="margin-top:0.35rem;">
+          <span>ITEM NAVIGATOR (${state.examPool.length} ITEMS)</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+          ${state.examPool.map((it, idx) => {
+            const isCur = idx === state.examIdx;
+            const hasA = state.examAnswers[it.id] !== undefined;
+            return `<button class="swiss-btn ${isCur ? 'terracotta' : ''}" style="width:32px;height:30px;padding:0;justify-content:center;font-family:var(--font-mono);font-size:0.74rem;${hasA && !isCur ? 'background:var(--vellum-tab);' : ''}" onclick="state.examIdx=${idx};render()">${idx + 1}</button>`;
+          }).join("")}
+        </div>
       </aside>
     </div>
   `;
@@ -1108,38 +1562,122 @@ window.logTaskToMyNcarb = function() {
 };
 
 /* ==========================================================================
-   VIEW 4: ARCHIVE (GOOGLE DRIVE STUDY MONOGRAPHS & MOCK EXAMS)
+   VIEW 4: INGEST & QUIZ STUDIO (DROP SCREENSHOTS, PDFS & NOTES TO TEST ME)
    ========================================================================== */
-function renderCalmArchive(focusDiv) {
+function renderIngestStudio(focusDiv) {
   return `
-    <div style="padding:1.4rem 1.65rem;">
-      <div class="pane-heading" style="margin-bottom:0.85rem;">
-        <span>ARCHITECTURAL STUDY ARCHIVE (16 GOOGLE DRIVE PDFS)</span>
-        <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-muted);">CLICK ANY FILE TO OPEN IN GOOGLE DRIVE</span>
-      </div>
+    <div class="exam-split">
+      <!-- Left Column: Dropzone for Screenshots / PDFs + Paste Notes Box -->
+      <section class="exam-left-pane" style="justify-content:flex-start;">
+        <div>
+          <div class="pane-heading">
+            <span>STUDY MATERIAL &amp; SCREENSHOT INGEST STUDIO</span>
+            <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-muted);">OCR + PDF PARSER</span>
+          </div>
+          <p style="margin:0.35rem 0 0.9rem;font-size:0.83rem;color:var(--ink-secondary);">
+            Drop screenshots of study slides, diagrams, practice questions, or PDFs here—or press <strong>Ctrl+V</strong> anywhere to paste a screenshot from your clipboard. The studio extracts the content and builds interactive test questions for you.
+          </p>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(295px, 1fr));gap:0.75rem;">
-        ${(db.driveResources || []).map(r => {
-          const isMatch = (Array.isArray(r.divisions) && r.divisions.includes(focusDiv.code)) || r.division === focusDiv.code;
-          const divLabel = Array.isArray(r.divisions) ? r.divisions.join(", ") : (r.division || "ALL");
-          return `
-            <div style="border:var(--rule);background:${isMatch ? 'var(--vellum-card)' : 'var(--vellum-light)'};padding:0.85rem;display:flex;flex-direction:column;justify-content:space-between;gap:0.65rem;">
-              <div>
-                <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:0.7rem;color:var(--ink-muted);">
-                  <span><strong>${esc(divLabel)}</strong></span>
-                  <span>${esc(r.category)}</span>
-                </div>
-                <div style="font-weight:700;font-size:0.9rem;margin-top:0.25rem;">${esc(r.title || r.name || r.filename)}</div>
-                <div style="font-size:0.76rem;color:var(--ink-secondary);margin-top:0.25rem;">${esc(r.summary || r.notes || "")}</div>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;border-top:var(--rule-subtle);padding-top:0.5rem;">
-                <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--ink-muted);">${esc(r.provider)}</span>
-                <a class="swiss-btn" style="padding:0.25rem 0.6rem;font-size:0.74rem;" href="${esc(r.driveUrl || r.url)}" target="_blank" rel="noopener">OPEN PDF ↗</a>
-              </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+            <label style="font-family:var(--font-mono);font-size:0.74rem;font-weight:700;">TARGET DIVISION:</label>
+            <select class="swiss-select" style="width:auto;font-family:var(--font-mono);font-size:0.75rem;" onchange="state.ingestTargetDiv=this.value">
+              <option value="AUTO" ${state.ingestTargetDiv === 'AUTO' ? 'selected' : ''}>Auto-Detect Division (Default: ${focusDiv.code})</option>
+              ${db.divisions.map(d => `<option value="${d.code}" ${state.ingestTargetDiv === d.code ? 'selected' : ''}>${d.code} — ${esc(d.name)}</option>`).join("")}
+            </select>
+          </div>
+
+          <label class="ingest-dropzone" style="padding:1.5rem 1.25rem;flex-direction:column;text-align:center;gap:0.65rem;"
+            ondragover="event.preventDefault();this.classList.add('dragover')"
+            ondragleave="this.classList.remove('dragover')"
+            ondrop="event.preventDefault();this.classList.remove('dragover');handleIngestFiles(event.dataTransfer.files)">
+            <input type="file" multiple accept="image/*,.pdf,.txt,.md" style="display:none;" onchange="handleIngestFiles(this.files)" />
+            <div style="font-family:var(--font-condensed);font-size:1.25rem;font-weight:700;letter-spacing:0.03em;">
+              + DROP SCREENSHOTS (PNG / JPG / WEBP) OR STUDY PDFS HERE
             </div>
-          `;
-        }).join("")}
-      </div>
+            <div style="font-size:0.8rem;color:var(--ink-secondary);max-width:480px;">
+              You can also copy any screenshot to your clipboard and press <strong>Ctrl+V</strong> (or <strong>Cmd+V</strong>), or click below to select files from your computer.
+            </div>
+            <span class="swiss-btn terracotta" style="margin-top:0.2rem;">SELECT SCREENSHOTS OR PDF FILES</span>
+          </label>
+
+          ${state.ingestStatus ? `
+            <div style="margin-top:0.75rem;padding:0.65rem 0.9rem;border:var(--rule);background:var(--vellum-card);display:flex;justify-content:space-between;align-items:center;gap:0.75rem;font-family:var(--font-mono);font-size:0.75rem;">
+              <span>${esc(state.ingestStatus)}</span>
+              ${state.lastIngestedBatchId ? `
+                <button class="swiss-btn terracotta" onclick="quizOnBatch('${state.lastIngestedBatchId}')">
+                  START QUIZ ON THIS MATERIAL →
+                </button>
+              ` : ""}
+            </div>
+          ` : ""}
+        </div>
+
+        <!-- Paste Text / Study Notes / Custom Question Block -->
+        <div style="border-top:var(--rule);padding-top:1rem;">
+          <div class="pane-heading" style="margin-bottom:0.5rem;">
+            <span>OR PASTE STUDY NOTES / FORMULAS / CODE CLAUSES TO QUIZ ME</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.55rem;">
+            <input type="text" class="swiss-input" placeholder="Topic / Source Title (e.g., Amber Book Thermal Bridging Notes, AIA A201 §3.12)" value="${esc(state.ingestPasteTitle)}" oninput="state.ingestPasteTitle=this.value" />
+            <textarea class="swiss-textarea" rows="5" placeholder="Paste any study notes, definitions, formulas (Term = Formula), or practice questions here..." oninput="state.ingestPasteText=this.value">${esc(state.ingestPasteText)}</textarea>
+            <div style="display:flex;justify-content:flex-end;">
+              <button class="swiss-btn cobalt" onclick="ingestPastedNotes()">
+                GENERATE PRACTICE QUESTIONS FROM NOTES →
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Ingested Batches & Generated Custom Questions -->
+      <aside class="exam-right-pane">
+        <div class="pane-heading">
+          <span>YOUR INGESTED STUDY MATERIALS (${state.ingestedBatches.length} BATCHES · ${state.customQuestions.length} Qs)</span>
+          ${state.customQuestions.length ? `
+            <button class="swiss-btn terracotta" style="padding:0.22rem 0.65rem;font-size:0.74rem;" onclick="quizOnBatch(null)">
+              QUIZ ALL INGESTED (${state.customQuestions.length} Qs) →
+            </button>
+          ` : ""}
+        </div>
+
+        ${state.ingestedBatches.length === 0 ? `
+          <div style="border:var(--rule);background:var(--vellum);padding:1.25rem;font-size:0.84rem;color:var(--ink-secondary);line-height:1.6;">
+            <strong>No custom screenshots or PDFs dropped yet.</strong><br/>
+             Note: Your initial 16 study guides &amp; practice exams from Google Drive are already pre-ingested into the built-in <strong>54-question division exam bank</strong>. Drop any new screenshot or PDF on the left to generate custom questions and visual exhibits on the fly!
+          </div>
+        ` : `
+          <div style="display:flex;flex-direction:column;gap:0.65rem;max-height:620px;overflow-y:auto;">
+            ${state.ingestedBatches.map(b => `
+              <div style="border:var(--rule);background:var(--vellum);padding:0.8rem;display:grid;grid-template-columns:${b.previewImage ? '76px ' : ''}minmax(0, 1fr) auto;gap:0.75rem;align-items:center;">
+                ${b.previewImage ? `
+                  <img src="${b.previewImage}" alt="${esc(b.name)}" style="width:76px;height:58px;object-fit:cover;border:var(--rule);" />
+                ` : ""}
+                <div style="min-width:0;">
+                  <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--ink-muted);">
+                    <strong>${esc(b.division)}</strong> · ${esc(b.kind)} · ${esc(b.createdAt)} · <strong>${b.questionCount} Qs Generated</strong>
+                  </div>
+                  <div style="font-weight:700;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0.15rem;">
+                    ${esc(b.name)}
+                  </div>
+                  ${b.extractedSnippet ? `
+                    <div style="font-size:0.73rem;color:var(--ink-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0.15rem;">
+                      ${esc(b.extractedSnippet)}
+                    </div>
+                  ` : ""}
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.35rem;">
+                  <button class="swiss-btn terracotta" style="padding:0.25rem 0.6rem;font-size:0.73rem;" onclick="quizOnBatch('${b.id}')">
+                    QUIZ ME (${b.questionCount}) →
+                  </button>
+                  <button class="swiss-btn" style="padding:0.2rem 0.5rem;font-size:0.68rem;justify-content:center;" onclick="deleteIngestedBatch('${b.id}')">
+                    REMOVE
+                  </button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        `}
+      </aside>
     </div>
   `;
 }
