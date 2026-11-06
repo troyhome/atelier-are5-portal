@@ -414,7 +414,7 @@ function render() {
         <div class="subnav-empty-cell"></div>
         <div class="subnav-division-hdr">DIVISION</div>
         <div class="subnav-spacer">
-          ${focusDiv.code} — ${esc(focusDiv.name)} · ${focusDiv.items} Items (${focusDiv.duration}) · NCARB Pass Score: 550/800 · Nat'l Pass Rate: ${focusDiv.nationalPassRate}%
+          ${focusDiv.code} — ${esc(focusDiv.name)} · ${focusDiv.totalItems || focusDiv.items} Items (${focusDiv.testDurationDisplay || focusDiv.duration}) · NCARB Pass Score: 550/800 · Nat'l Pass Rate: ${(focusDiv.passRates && focusDiv.passRates['2025']) || focusDiv.nationalPassRate}%
         </div>
         <div class="subnav-tabs">
           <button class="subnav-tab-btn ${state.topTab === 'overview' ? 'active' : ''}" onclick="switchTopTab('overview')">OVERVIEW</button>
@@ -496,7 +496,7 @@ function renderHamburgerDrawer(totalApproved) {
       ${db.divisions.map((d, idx) => `
         <button class="drawer-item" onclick="selectDivision('${d.code}')">
           <span>${idx + 1} · ${esc(d.code)} — ${esc(d.name)}</span>
-          <span class="code-tag">${d.code === state.activeDiv ? 'SELECTED' : d.items + ' Qs'}</span>
+          <span class="code-tag">${d.code === state.activeDiv ? 'SELECTED' : (d.totalItems || d.items) + ' Qs'}</span>
         </button>
       `).join("")}
 
@@ -560,11 +560,11 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
           <div class="specs-strip">
             <div class="spec-cell">
               <div class="spec-lbl">EXAM ITEMS</div>
-              <div class="spec-val">${focusDiv.items} Questions</div>
+              <div class="spec-val">${focusDiv.totalItems || focusDiv.items} Questions</div>
             </div>
             <div class="spec-cell">
               <div class="spec-lbl">TEST DURATION</div>
-              <div class="spec-val">${esc(focusDiv.duration)}</div>
+              <div class="spec-val">${esc(focusDiv.testDurationDisplay || focusDiv.duration)}</div>
             </div>
             <div class="spec-cell">
               <div class="spec-lbl">NCARB PASSING SCORE</div>
@@ -572,7 +572,7 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
             </div>
             <div class="spec-cell">
               <div class="spec-lbl">NATIONAL PASS RATE</div>
-              <div class="spec-val">${focusDiv.nationalPassRate}% (NCARB)</div>
+              <div class="spec-val">${(focusDiv.passRates && focusDiv.passRates['2025']) || focusDiv.nationalPassRate}% (NCARB)</div>
             </div>
           </div>
 
