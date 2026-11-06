@@ -406,15 +406,20 @@ html, body {
 /* ==========================================================================
    MAIN CONTENT AREA — OVERVIEW 3-PANE PURPOSE-DRIVEN GRID
    ========================================================================== */
+.workspace-row > main {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .overview-grid {
   display: grid;
-  grid-template-columns: 54% 46%;
+  grid-template-columns: minmax(0, 54%) minmax(0, 46%);
   height: 100%;
 }
 
 @media (max-width: 1120px) {
   .overview-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -425,11 +430,15 @@ html, body {
   flex-direction: column;
   justify-content: space-between;
   gap: 1rem;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pane-right-stack {
   display: grid;
   grid-template-rows: auto 1fr;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pane-top-ref {
@@ -439,6 +448,7 @@ html, body {
   flex-direction: column;
   justify-content: space-between;
   background: var(--vellum-light);
+  min-width: 0;
 }
 
 .pane-bottom-axp {
@@ -446,6 +456,7 @@ html, body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .pane-heading {

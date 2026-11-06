@@ -275,6 +275,13 @@ async function initPortal() {
     } catch (_) {}
   }
 
+  if (window.location && window.location.hash) {
+    const h = window.location.hash.replace("#", "").trim();
+    if (["PcM", "PjM", "PA", "PPD", "PDD", "CE"].includes(h)) {
+      state.activeDiv = h;
+    }
+  }
+
   filterExamPool();
   runTaskClassifier(false);
   render();
@@ -616,12 +623,12 @@ function renderPurposeDrivenOverview(focusDiv, totalApproved, totalRem) {
               </button>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:0.5rem;">
+            <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:0.5rem;">
               ${matchingPdfs.map(r => `
-                <a href="${esc(r.driveUrl || r.url)}" target="_blank" rel="noopener" style="border:var(--rule);background:var(--vellum-light);padding:0.55rem 0.7rem;text-decoration:none;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
-                  <div style="overflow:hidden;">
-                    <div style="font-size:0.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.title || r.name || r.filename)}</div>
-                    <div style="font-family:var(--font-mono);font-size:0.66rem;color:var(--ink-muted);">${esc(r.category)}</div>
+                <a href="${esc(r.driveUrl || r.url)}" target="_blank" rel="noopener" style="min-width:0;overflow:hidden;border:var(--rule);background:var(--vellum-light);padding:0.55rem 0.7rem;text-decoration:none;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
+                  <div style="min-width:0;flex:1;overflow:hidden;">
+                    <div style="font-size:0.78rem;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.title || r.name || r.filename)}</div>
+                    <div style="font-family:var(--font-mono);font-size:0.66rem;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.category)}</div>
                   </div>
                   <span style="font-family:var(--font-mono);font-size:0.72rem;font-weight:700;color:var(--cobalt);flex-shrink:0;">PDF ↗</span>
                 </a>
